@@ -742,7 +742,7 @@ async function loadGSheetsInventory(manualUrl) {
         document.getElementById('gsheetsUrl').value = GSHEETS_URL;
       }
       updateMasterList();
-      if (document.getElementById('tab-inventory').style.display !== 'none') renderInventoryBrowser();
+      if (document.getElementById('tab-pantry') && document.getElementById('tab-pantry').style.display !== 'none') renderInventoryBrowser();
     } else throw new Error('No data rows found');
   } catch(e) {
     console.warn('GSheets sync failed:', e.message);
