@@ -843,7 +843,7 @@ function parseRecipe() {
     }
 
     const cat = guessCategory(name);
-    const multiplier = cat === 'meat' ? meatBuf : cat === 'produce' ? produceBuf : cat === 'seasoning' ? seasoningBuf : takes;
+    const multiplier = (['Meat and Poultry','Seafood','Processed Meats','Dairy'].includes(cat)) ? meatBuf : (['Fresh Produce','Frozen Fruits/ Veggies'].includes(cat)) ? produceBuf : takes;
     const scaledQty = Math.round(qty * multiplier * 10) / 10;
 
     const isSponsored = false; // set manually via ⭐ toggle on recipe card
@@ -957,11 +957,14 @@ function saveIngRow(rid,i) {
   const r = recipes.find(x=>x.id===rid); if(!r) return;
   r.ingredients[i].name = document.getElementById(`ei-name-${i}`).value;
   const newCat = document.getElementById(`ei-cat-${i}`).value;
-  r.ingredients[i].category = newCat;       // subcat stored on ingredient
-  r.ingredients[i].manualSubcat = newCat;   // flag as manually set
-  r.ingredients[i].scaledQty = parseFloat(document.getElementById(`ei-qty-${i}`).value)||0;
+  r.ingredients[i].category = newCat;
+  r.ingredients[i].manualSubcat = newCat;
   r.ingredients[i].scaledUnit = document.getElementById(`ei-unit-${i}`).value;
-  r.ingredients[i].multiplier = parseInt(document.getElementById(`ei-mul-${i}`).value)||r.takes;
+  // Recompute multiplier based on new category if not manually overridden
+  const newMul = parseInt(document.getElementById(`ei-mul-${i}`).value) || r.takes;
+  r.ingredients[i].multiplier = newMul;
+  // Recompute scaledQty from origQty × new multiplier
+  r.ingredients[i].scaledQty = Math.round(r.ingredients[i].origQty * newMul * 10) / 10;
   renderRecipeCard(r); markListsDirty();
 }
 
