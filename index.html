@@ -710,14 +710,28 @@ async function loadGSheetsInventory(manualUrl) {
       csvUrl += (csvUrl.includes('?') ? '&' : '?') + 'output=csv';
     }
 
-    const resp = await fetch(csvUrl);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const text = await resp.text();
+    // Try direct fetch first, fall back to CORS proxies if blocked
+    let text = null;
+    const proxies = [
+      (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+      (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      (u) => u, // direct last attempt
+    ];
 
-    // Sanity check — real CSV starts with a letter, not < or {
-    if (text.trim().startsWith('<') || text.trim().startsWith('{') || text.trim().startsWith('/')) {
-      throw new Error('Got HTML/JS instead of CSV — check publish URL');
+    for (const proxy of proxies) {
+      try {
+        const proxyUrl = proxy(csvUrl);
+        const resp = await fetch(proxyUrl);
+        if (!resp.ok) continue;
+        const t = await resp.text();
+        // Sanity check — real CSV starts with a letter/quote, not < or {
+        if (t.trim().startsWith('<') || t.trim().startsWith('{') || t.trim().startsWith('/')) continue;
+        text = t;
+        break;
+      } catch(e) { continue; }
     }
+
+    if (!text) throw new Error('All fetch attempts failed — check publish URL');
 
     const parsed = parseCSVInventory(text);
     if (parsed.length > 0) {
