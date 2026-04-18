@@ -213,6 +213,8 @@ textarea.recipe-text::placeholder { color:var(--muted); line-height:1.8; }
 .final-item:last-child{border-bottom:none}
 .fi-name{font-weight:500}.fi-qty{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)}
 .fi-sp{color:var(--purple);font-size:9px;font-family:'DM Mono',monospace;font-weight:600}
+.buy-parent-header{background:var(--ink);color:var(--cream);padding:7px 12px;border-radius:7px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;margin:14px 0 6px;font-weight:600}
+.buy-subcat-header{background:var(--panel);color:var(--muted);padding:5px 10px;border-radius:5px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin:8px 0 4px;border-left:3px solid var(--accent)}
 
 .export-actions{margin-top:14px;display:flex;gap:6px;flex-wrap:wrap}
 
@@ -582,67 +584,64 @@ const FUZZY_HINTS = [
 ];
 
 // ============================================================
-// CATEGORY MAP — hardcoded from Plate This actual inventory structure
-// Maps ingredient keywords → pantry category
+// FULL PANTRY CATEGORY STRUCTURE — matches Plate This sheet tabs
 // ============================================================
-const CATEGORY_MAP = {
-  // Meat & Poultry
-  meat: /\b(chicken|pork|beef|lamb|fish|shrimp|prawn|crab|squid|tuna(?! can)$|salmon(?! smoked canned)$|bacon|ham|sausage|hotdog|liempo|kani|crabstick|mussels|tilapia|bangus|milkfish|ground meat|minced meat|meat|poultry|duck|turkey)\b/i,
-  // Fresh Produce — vegetables, fresh herbs, fresh fruit
-  produce: /\b(lettuce|tomato|onion|spring onion|green onion|scallion|cucumber|carrot|celery|spinach|kangkong|pechay|bok choy|cabbage|bell pepper|capsicum|eggplant|zucchini|squash|potato|sweet potato|corn(?! starch| kernels canned)$|mushroom(?! canned| dried)$|basil|parsley|cilantro|coriander leaf|dill|mint|thyme(?! dried)$|rosemary(?! dried)$|oregano(?! dried)$|ginger|lemongrass|pandan|bay leaf(?! dried)$|lemon|lime|calamansi|mango|banana|avocado|strawberr|blueberr|apple|orange|grapes|cherry|fruit|vegetable|herbs|fresh)\b/i,
-  // Dairy
-  dairy: /\b(milk(?! powder)$|fresh milk|evap|evaporated|condensed|butter|cream(?! of tartar)$|all.purpose cream|whipping cream|sour cream|cheese|mozzarella|parmesan|cheddar|feta|brie|goat cheese|cream cheese|yogurt|cottage cheese|margarine)\b/i,
-  // Dry goods — starches, grains, baked goods
-  dry: /\b(flour|sugar(?! cane)$|brown sugar|white sugar|powdered sugar|muscovado|starch|cornstarch|potato starch|tapioca|breadcrumb|pasta|spaghetti|penne|linguini|macaroni|noodle|rice(?! vinegar)$|oat|bread|pandesal|loaf|bun|wrapper|crepe|tortilla|roll)\b/i,
-  // Eggs — separate from meat
-  eggs: /\b(egg)\b/i,
+const PARENT_TABS = {
+  'Dry Goods: Cooking Items': ['Canned Goods','Bottled Goods','Condiments','Cooking Mixes','Seasonings/ Vinegars','Noodles/ Grains','Cooking Spices','Processed Dairy','Oils'],
+  'Dry Goods: Pastry Items': ['Syrups/ Jam/ Frosting','Pastry Spices/ Toppings','Biscuits/ Cookies/ Snacks','Nuts/ Seeds','Chocolates/ Dried Fruits','Baking Mixes','Sugars/ Flours/ Powders','Drinks'],
+  'Frozen and Chilled Items': ['Meat and Poultry','Seafood','Processed Meats','Frozen Fruits/ Veggies','Opened Jars','Dairy','Syrups','Bread/ Pastries'],
+  'Uncategorized': ['Uncategorized']
 };
+const ALL_SUBCATS = ['Canned Goods','Bottled Goods','Condiments','Cooking Mixes','Seasonings/ Vinegars','Noodles/ Grains','Cooking Spices','Processed Dairy','Oils','Syrups/ Jam/ Frosting','Pastry Spices/ Toppings','Biscuits/ Cookies/ Snacks','Nuts/ Seeds','Chocolates/ Dried Fruits','Baking Mixes','Sugars/ Flours/ Powders','Drinks','Meat and Poultry','Seafood','Processed Meats','Frozen Fruits/ Veggies','Opened Jars','Dairy','Syrups','Bread/ Pastries','Uncategorized'];
+const RECIPE_MAIN_CATS = ['Dry Goods: Cooking Items','Dry Goods: Pastry Items','Frozen and Chilled Items','Uncategorized'];
 
-// Fine-grained pantry category (for display matching to sheet)
-const PANTRY_CATEGORY_MAP = [
-  { cat:'Meat & Poultry', pattern:/\b(chicken|pork|beef|lamb|liempo|lechon|duck|turkey)\b/i },
-  { cat:'Seafood', pattern:/\b(fish|shrimp|prawn|crab|squid|tuna|salmon|mussels|kani|crabstick|tilapia|bangus|clam|oyster(?! sauce)$)\b/i },
-  { cat:'Processed Meats', pattern:/\b(bacon|ham|hotdog|sausage|chorizo|spam|luncheon meat|corned beef)\b/i },
-  { cat:'Dairy', pattern:/\b(milk|evap|condensed|butter|cream(?! of tartar)$|all.purpose cream|whipping cream|sour cream|cheese|mozzarella|parmesan|cheddar|feta|brie|goat cheese|cream cheese|yogurt|cottage|margarine)\b/i },
-  { cat:'Eggs', pattern:/\b(egg)\b/i },
-  { cat:'Produce', pattern:/\b(lettuce|tomato|onion|spring onion|scallion|cucumber|carrot|celery|spinach|kangkong|pechay|bok choy|cabbage|bell pepper|eggplant|zucchini|squash|potato|sweet potato|mushroom(?! canned| dried)$|ginger|lemongrass|pandan|lemon|lime|calamansi|mango|banana|avocado|fresh herb|basil|parsley|cilantro|dill|mint)\b/i },
-  { cat:'Canned Goods', pattern:/\b(canned|pineapple slices|pineapple tidbits|spam|tuna can|red beans|white beans|garbanzos|chickpeas canned|anchovies|liver spread|diced tomatoes|peeled tomatoes|corn kernels|mushroom can|black beans)\b/i },
-  { cat:'Bottled Goods', pattern:/\b(cornichon|pickle|capers|olives|jalapen|atchara|tahini|sundried tomato|truffle sauce|pesto|char siu|caperberr|provencale|horseradish|bolognese)\b/i },
-  { cat:'Condiments', pattern:/\b(ketchup|mayo|mayonnaise|mustard|mang tomas|balsamic|wasabi|bbq sauce|sriracha|habanero|bagoong|ginamos|steak sauce|banana ketchup)\b/i },
-  { cat:'Oils', pattern:/\b(oil)\b/i },
-  { cat:'Seasonings', pattern:/\b(soy sauce|fish sauce|oyster sauce|worcestershire|liquid seasoning|mirin|vinegar|liquid smoke|dark soy|japanese soy|chinese cooking wine|bango)\b/i },
-  { cat:'Cooking Mixes', pattern:/\b(coconut milk|tomato sauce|tomato paste|gochujang|miso|tom yum|tamarind paste|japanese curry|kaldereta|kare.kare|sinigang|shrimp bisque|pumpkin soup|palabok)\b/i },
-  { cat:'Cooking Spices', pattern:/\b(pepper|paprika|cumin|turmeric|curry powder|chili flakes|cayenne|annatto|garlic powder|garlic bits|crispy garlic|garlic flakes|fried garlic|star anise|cloves|bay leaves|oregano|rosemary|thyme|italian seasoning|parsley flakes|five spice|taco seasoning|cajun|togarashi|furikake|nori|bonito|wakame|shiitake|fennel|cardamom|coriander seeds|kasubha|kaffir|salt|rock salt|sea salt|iodized salt|pink salt)\b/i },
-  { cat:'Sugars & Flours', pattern:/\b(flour|sugar|starch|cornmeal|semolina|breadcrumb|yeast|baking powder|baking soda|cream of tartar|cocoa powder|matcha|cassava|tempura flour|instant whipped cream|mashed potato|rice flour|almond flour|bread flour|whole wheat|potato starch|tapioca starch)\b/i },
-  { cat:'Noodles & Grains', pattern:/\b(rice|pasta|spaghetti|penne|linguini|macaroni|noodle|bihon|misua|japchae|ramen|udon|vermicelli|canton|oat|quinoa|basmati)\b/i },
-  { cat:'Nuts & Seeds', pattern:/\b(almond|walnut|cashew|peanut|pistachio|pine nut|pecan|hazelnut|macadamia|chickpeas|monggo|soybean|sesame seed|flax|chia|pumpkin seed|sunflower seed|apricot dried|raisins|craisins|coconut flakes|desiccated coconut|dates|pinipig)\b/i },
-  { cat:'Chocolates', pattern:/\b(chocolate|cocoa|cacao)\b/i },
-  { cat:'Syrups & Jams', pattern:/\b(honey|maple syrup|corn syrup|pancake syrup|peanut butter|biscoff|marmalade|jam|kaong|nata de coco|maraschino|ube halaya|yema|frosting|langka|cranberry sauce)\b/i },
-  { cat:'Baking Mixes', pattern:/\b(gulaman|gelatin|tapioca pearl|cake mix|cookie mix|puto mix|hot cake mix)\b/i },
-  { cat:'Bread', pattern:/\b(bread|pandesal|bun|loaf|sandwich bread|pita|tortilla|rice paper|wrapper|puff pastry|broas|otap)\b/i },
-  { cat:'Frozen', pattern:/\b(frozen|fries|edamame|green peas frozen)\b/i },
+function getParentTab(subcat) {
+  for (const [parent, subs] of Object.entries(PARENT_TABS)) {
+    if (subs.includes(subcat)) return parent;
+  }
+  return 'Uncategorized';
+}
+
+const SUBCAT_RULES = [
+  { sub:'Meat and Poultry', pat:/\b(chicken|pork|beef|lamb|liempo|lechon|duck|turkey|ground meat|minced meat)\b/i },
+  { sub:'Seafood', pat:/\b(fish|shrimp|prawn|crab|squid|tuna|salmon|mussels|kani|crabstick|tilapia|bangus|clam)\b/i },
+  { sub:'Processed Meats', pat:/\b(bacon|ham|hotdog|sausage|chorizo|spam|luncheon|corned beef)\b/i },
+  { sub:'Dairy', pat:/\b(egg|milk|evap|evaporated|condensed|butter|cream(?! of tartar)|all.purpose cream|whipping cream|sour cream|cheese|mozzarella|parmesan|cheddar|feta|brie|goat cheese|cream cheese|yogurt|cottage|margarine)\b/i },
+  { sub:'Frozen Fruits/ Veggies', pat:/\b(frozen|edamame|green peas frozen|fries|potato wedge)\b/i },
+  { sub:'Bread/ Pastries', pat:/\b(bread|pandesal|bun|loaf|sandwich bread|pita|tortilla|rice paper|wrapper|puff pastry|broas|otap|udon|mochi)\b/i },
+  { sub:'Canned Goods', pat:/\b(canned|pineapple slices|pineapple tidbits|red beans|white beans|garbanzos|anchovies|liver spread|diced tomatoes|peeled tomatoes|corn kernels|black beans)\b/i },
+  { sub:'Bottled Goods', pat:/\b(cornichon|pickle|capers(?!berr)|olives|jalape|atchara|tahini|sundried tomato|truffle sauce|pesto|char siu|caperberr|provencale|horseradish|bolognese sauce|kimchi|langka)\b/i },
+  { sub:'Condiments', pat:/\b(ketchup|mayo|mayonnaise|mustard|mang tomas|balsamic|wasabi|bbq sauce|sriracha|habanero|bagoong|ginamos|steak sauce|banana ketchup|chiu chow|chili garlic sauce|hoisin|satay)\b/i },
+  { sub:'Cooking Mixes', pat:/\b(coconut milk|tomato sauce|tomato paste|gochujang|doenjang|miso|tom yum paste|tamarind paste|japanese curry|kaldereta|kare.kare|sinigang|shrimp bisque|pumpkin soup|palabok mix|pinakurat|green curry paste)\b/i },
+  { sub:'Seasonings/ Vinegars', pat:/\b(soy sauce|fish sauce|oyster sauce|worcestershire|liquid seasoning|mirin|vinegar|liquid smoke|dark soy|japanese soy|chinese cooking wine|bango sauce|lime powder|aromat|rostip|chicken powder|chicken cube|shrimp cube|beef cube|demi glace)\b/i },
+  { sub:'Oils', pat:/\b(oil)\b/i },
+  { sub:'Cooking Spices', pat:/\b(black pepper|white pepper|peppercorn|paprika|cumin|turmeric|curry powder|chili flakes|cayenne|annatto|garlic powder|garlic bits|crispy garlic|garlic flakes|fried garlic|star anise|cloves|bay leaves|dried oregano|dried rosemary|dried thyme|italian seasoning|parsley flakes|five spice|taco seasoning|cajun|togarashi|furikake|nori|bonito|wakame|dried shiitake|fennel|cardamom|coriander seeds|kasubha|kaffir|salt|rock salt|sea salt|iodized salt|pink salt|onion powder|all spice)\b/i },
+  { sub:'Noodles/ Grains', pat:/\b(rice(?! paper)|spaghetti|penne|linguini|macaroni|pasta|noodle|bihon|misua|japchae|ramen|vermicelli|canton|rolled oats|quinoa|basmati|cornmeal)\b/i },
+  { sub:'Processed Dairy', pat:/\b(evap(?!orated milk)|evaporated milk|condensed milk|fresh milk|cheese sauce|chiz whiz|margarine|all.purpose cream)\b/i },
+  { sub:'Syrups/ Jam/ Frosting', pat:/\b(honey|maple syrup|corn syrup|pancake syrup|peanut butter|biscoff spread|marmalade|jam|kaong|nata de coco|maraschino|ube halaya|yema syrup|frosting|cranberry sauce|chocolate syrup|caramel syrup|strawberry syrup)\b/i },
+  { sub:'Pastry Spices/ Toppings', pat:/\b(vanilla extract|vanilla bean|vanilla flavoring|cinnamon powder|cinnamon stick|nutmeg|sprinkle|vermicelli sprinkle|pearl sprinkle|sugar crystal|ube powder|malunggay powder|lavender|chamomile|rice crispies)\b/i },
+  { sub:'Biscuits/ Cookies/ Snacks', pat:/\b(biscuit|cookie|cracker|pretzel|bread stick|grissini|saltine|popcorn|pocky|pepero|oreo|otap|stick-o|potato chips|wafer|cornflake|cornick|chicharon|nacho|graham)\b/i },
+  { sub:'Nuts/ Seeds', pat:/\b(almond|walnut|cashew|peanut(?! butter)|pistachio|pine nut|pecan|hazelnut|macadamia|chickpeas|monggo|soybean|sesame seed|flax seed|chia seed|pumpkin seed|sunflower seed|apricot|raisins|craisins|desiccated coconut|coconut flakes|dates|pinipig)\b/i },
+  { sub:'Chocolates/ Dried Fruits', pat:/\b(chocolate chip|dark chocolate|white chocolate|milk chocolate|compound chocolate|cacao|dried mango|dried strawberr|dried apricot|dried cranberr|freeze dried)\b/i },
+  { sub:'Baking Mixes', pat:/\b(gulaman|gelatin|tapioca pearl|cake mix|cookie mix|puto mix|hot cake mix|banana cake|butter cake|yellow cake)\b/i },
+  { sub:'Sugars/ Flours/ Powders', pat:/\b(flour|sugar|starch|cornmeal|semolina|breadcrumb|yeast|baking powder|baking soda|cream of tartar|cocoa powder|matcha powder|cassava starch|tempura flour|rice flour|almond flour|bread flour|whole wheat flour|potato starch|tapioca starch|instant whipped cream|instant coffee|ube powder)\b/i },
+  { sub:'Drinks', pat:/\b(sunquick|beer|coke|sprite|soda|juice|softdrink)\b/i },
 ];
 
-function guessCategory(name) {
+function guessSubcat(name) {
   const n = name.toLowerCase();
-  // Eggs first — common ambiguity
-  if (/\begg\b/.test(n)) return 'dairy';
-  if (CATEGORY_MAP.meat.test(n)) return 'meat';
-  if (CATEGORY_MAP.produce.test(n)) return 'produce';
-  if (CATEGORY_MAP.dairy.test(n)) return 'dairy';
-  if (CATEGORY_MAP.dry.test(n)) return 'dry';
-  // Seasoning is broad — check last
-  if (/\b(oil|sauce|vinegar|soy|ketchup|mayo|mayonnaise|mustard|salt|pepper(?! fresh| bell)$|spice|seasoning|paprika|cumin|turmeric|curry|chili|sriracha|hoisin|oyster sauce|fish sauce|mirin|worcestershire|pesto|tahini|gochujang|miso|bagoong)\b/i.test(n)) return 'seasoning';
-  return 'other';
-}
-
-function getPantryCategory(name) {
-  const n = name.toLowerCase();
-  for (const rule of PANTRY_CATEGORY_MAP) {
-    if (rule.pattern.test(n)) return rule.cat;
+  for (const rule of SUBCAT_RULES) {
+    if (rule.pat.test(n)) return rule.sub;
   }
-  return 'General';
+  return 'Uncategorized';
 }
+function guessCategory(name) { return guessSubcat(name); }
+function guessMainCat(name) {
+  const sub = guessSubcat(name);
+  return getParentTab(sub);
+}
+function getPantryCategory(name) { return guessSubcat(name); }
+
 
 // ============================================================
 // STATE
@@ -872,8 +871,11 @@ function clearPaste() { document.getElementById('recipeText').value = ''; }
 // RECIPE CARD
 // ============================================================
 function catBadge(cat) {
-  const map = { meat:'cat-meat', produce:'cat-produce', seasoning:'cat-seasoning', other:'cat-other', dairy:'cat-other', dry:'cat-other' };
-  return `<span class="cat-badge ${map[cat]||'cat-other'}">${cat}</span>`;
+  const frozen = ['Meat and Poultry','Seafood','Processed Meats','Frozen Fruits/ Veggies','Opened Jars','Dairy','Syrups','Bread/ Pastries'];
+  const pastry = ['Syrups/ Jam/ Frosting','Pastry Spices/ Toppings','Biscuits/ Cookies/ Snacks','Nuts/ Seeds','Chocolates/ Dried Fruits','Baking Mixes','Sugars/ Flours/ Powders','Drinks'];
+  const cooking = ['Canned Goods','Bottled Goods','Condiments','Cooking Mixes','Seasonings/ Vinegars','Noodles/ Grains','Cooking Spices','Processed Dairy','Oils'];
+  const cls = frozen.includes(cat) ? 'cat-meat' : pastry.includes(cat) ? 'cat-produce' : cooking.includes(cat) ? 'cat-seasoning' : 'cat-other';
+  return `<span class="cat-badge ${cls}" title="${cat}">${cat}</span>`;
 }
 
 function renderRecipeCard(recipe) {
@@ -922,7 +924,7 @@ function editIngRow(rid,i) {
   const r = recipes.find(x=>x.id===rid); if(!r) return;
   const ing = r.ingredients[i];
   const row = document.getElementById(`ir-${rid}-${i}`);
-  const cats = ['meat','produce','seasoning','dairy','dry','other'];
+  const cats = ALL_SUBCATS;
   row.innerHTML = `<td colspan="5" class="inline-edit-row"><div class="inline-edit">
     <input type="text" value="${ing.name}" id="ei-name-${i}" style="flex:1;min-width:100px">
     <select id="ei-cat-${i}">${cats.map(c=>`<option ${c===ing.category?'selected':''}>${c}</option>`).join('')}</select>
@@ -951,7 +953,7 @@ function deleteIng(rid,i) {
 
 function addManualIng(rid) {
   const r = recipes.find(x=>x.id===rid); if(!r) return;
-  r.ingredients.push({name:'New Ingredient',origQty:1,origUnit:'pcs',scaledQty:1,scaledUnit:'pcs',category:'other',multiplier:r.takes,isFuzzy:false,isSponsored:false,notes:''});
+  r.ingredients.push({name:'New Ingredient',origQty:1,origUnit:'pcs',scaledQty:1,scaledUnit:'pcs',category:'Uncategorized',multiplier:r.takes,isFuzzy:false,isSponsored:false,notes:''});
   renderRecipeCard(r);
   setTimeout(()=>editIngRow(rid,r.ingredients.length-1),30);
 }
@@ -991,7 +993,7 @@ function rebuildMasterList() {
   for(const recipe of recipes) {
     for(const ing of recipe.ingredients) {
       const key = ing.name.toLowerCase().trim();
-      if(!map[key]) map[key] = {id:key,name:ing.name,totalQty:0,unit:ing.scaledUnit,recipes:[],category:ing.category,isSponsored:ing.isSponsored,isFuzzy:ing.isFuzzy,fuzzyReason:ing.fuzzyReason,manualStatus:null,combined:false,combinedAs:'',editOpen:false};
+      if(!map[key]) { const sub=guessSubcat(ing.name); map[key] = {id:key,name:ing.name,totalQty:0,unit:ing.scaledUnit,recipes:[],category:ing.category,subcat:sub,parentTab:getParentTab(sub),isSponsored:ing.isSponsored,isFuzzy:ing.isFuzzy,fuzzyReason:ing.fuzzyReason,manualStatus:null,combined:false,combinedAs:'',editOpen:false}; }
       map[key].totalQty = Math.round((map[key].totalQty+ing.scaledQty)*10)/10;
       if(!map[key].recipes.includes(recipe.name)) map[key].recipes.push(recipe.name);
       if(ing.isSponsored) map[key].isSponsored=true;
@@ -1002,22 +1004,23 @@ function rebuildMasterList() {
 }
 
 function matchInventory(name) {
-  const s = name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
-  const words = s.split(' ').filter(w=>w.length>2);
-  let best=0, bestItem=null;
-  for(const item of INVENTORY) {
-    const iname = item.name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
-    let score=0;
-    if(iname===s) score=100;
-    else if(iname.includes(s)||s.includes(iname)) score=80;
-    else {
-      const iw=iname.split(' ');
-      const overlap=words.filter(w=>iw.some(x=>x.includes(w)||w.includes(x)));
-      score=(overlap.length/Math.max(words.length,1))*60;
+  const s = name.toLowerCase().replace(/[^a-z0-9 ]/g,"").trim();
+  const words = s.split(" ").filter(w => w.length > 2);
+  let best = 0, bestItem = null;
+  for (const item of INVENTORY) {
+    const iname = item.name.toLowerCase().replace(/[^a-z0-9 ]/g,"").trim();
+    const iwords = iname.split(" ").filter(w => w.length > 2);
+    let score = 0;
+    if (iname === s) { score = 100; }
+    else if (s.length >= 4 && iname.includes(s)) { score = 85; }
+    else if (iname.length >= 5 && s.includes(iname)) { score = 75; }
+    else if (words.length > 0 && iwords.length > 0) {
+      const matched = words.filter(w => iwords.some(iw => iw === w));
+      if (matched.length === words.length) { score = 70; }
     }
-    if(score>best){best=score;bestItem=item;}
+    if (score > best) { best = score; bestItem = item; }
   }
-  return best>=28?bestItem:null;
+  return best >= 70 ? bestItem : null;
 }
 
 function detectCombineSuggestions() {
@@ -1063,7 +1066,7 @@ function updateMasterList() {
   container.innerHTML=masterList.map((ml,idx)=>{
     if(ml.isSponsored) sp++;
     const inv=matchInventory(ml.name);
-    let autoStatus=!inv?'unmatched':inv.status==='Re-purchase needed'||inv.stock===0?'buy':inv.stock<=1?'low':'ok';
+    let autoStatus=!inv?'buy':inv.status==='Re-purchase needed'||inv.stock===0?'buy':inv.stock<=1?'low':'ok';
     const status=ml.manualStatus||(ml.isSponsored?'sponsored':autoStatus);
     if(status==='ok') ok++;
     else if(status==='low'){low++;buyItems.push(ml);}
@@ -1072,7 +1075,7 @@ function updateMasterList() {
     const rowClass=ml.isSponsored?'sponsored-item':ml.combined?'combined-item':status==='ok'?'matched':status==='low'?'partial':'unmatched';
     const fuzzyClass=ml.isFuzzy?'flagged-fuzzy':'';
     const hint=FUZZY_HINTS.find(h=>h.pattern.test(ml.name));
-    const badge=ml.isSponsored?`<span class="status-badge badge-sp">BRAND</span>`:ml.combined?`<span class="status-badge badge-combine">COMBINED</span>`:status==='ok'?`<span class="status-badge badge-ok">In Stock</span>`:status==='low'?`<span class="status-badge badge-low">Low</span>`:status==='unmatched'?`<span class="status-badge badge-manual">⚠ Check</span>`:`<span class="status-badge badge-buy">Buy</span>`;
+    const badge=ml.isSponsored?`<span class="status-badge badge-sp">BRAND</span>`:ml.combined?`<span class="status-badge badge-combine">COMBINED</span>`:status==='ok'?`<span class="status-badge badge-ok">In Stock</span>`:status==='low'?`<span class="status-badge badge-low">Low</span>`:`<span class="status-badge badge-buy">Buy</span>`;
     const stockInfo=inv?`${inv.stock} ${inv.unit}${inv.weight?' · '+inv.weight:''}`:status==='unmatched'?'Not in pantry':'';
 
     return `<div class="master-row" id="mr-${idx}">
@@ -1095,11 +1098,15 @@ function updateMasterList() {
         <input type="number" value="${ml.totalQty}" id="mqty-${idx}" style="width:70px">
         <input type="text" value="${ml.unit}" id="munit-${idx}" style="width:60px">
         <select id="mstatus-${idx}">
-          <option value="">Auto</option>
+          <option value="">Auto Status</option>
           <option value="ok" ${ml.manualStatus==='ok'?'selected':''}>✓ In Stock</option>
-          <option value="low" ${ml.manualStatus==='low'?'selected':''}>⚡ Low</option>
-          <option value="buy" ${ml.manualStatus==='buy'?'selected':''}>🛒 Buy</option>
-          <option value="sponsored" ${ml.manualStatus==='sponsored'?'selected':''}>⭐ Brand</option>
+          <option value="low" ${ml.manualStatus==='low'?'selected':''}>⚡ Low Stock</option>
+          <option value="buy" ${ml.manualStatus==='buy'?'selected':''}>🛒 Need to Buy</option>
+          <option value="sponsored" ${ml.manualStatus==='sponsored'?'selected':''}>⭐ Brand Item</option>
+        </select>
+        <select id="msubcat-${idx}">
+          <option value="">— Move to category —</option>
+          ${ALL_SUBCATS.map(s=>`<option value="${s}" ${ml.subcat===s?'selected':''}>${s}</option>`).join('')}
         </select>
         <button class="btn btn-primary btn-sm" onclick="saveMasterItem(${idx})">Save</button>
         <button class="btn btn-ghost btn-sm" onclick="toggleMasterEdit(${idx})">×</button>
@@ -1121,6 +1128,8 @@ function saveMasterItem(idx){
   masterList[idx].totalQty=parseFloat(document.getElementById(`mqty-${idx}`).value)||0;
   masterList[idx].unit=document.getElementById(`munit-${idx}`).value;
   masterList[idx].manualStatus=document.getElementById(`mstatus-${idx}`).value||null;
+  const sc=document.getElementById(`msubcat-${idx}`).value;
+  if(sc) { masterList[idx].subcat=sc; masterList[idx].parentTab=getParentTab(sc); }
   masterList[idx].editOpen=false; updateMasterList();
 }
 function toggleMasterSponsored(idx){
@@ -1167,8 +1176,8 @@ function renderFinalList(items) {
 function exportCSV() {
   const pName=document.getElementById('projectName').value||'Project';
   const items=document.getElementById('exportActions')._items||[];
-  const rows=[['Project','Ingredient','Qty Needed','Unit','Type','Recipes','Notes']];
-  items.forEach(it=>rows.push([pName,it.name,it.totalQty,it.unit,it.isSponsored?'BRAND ITEM':it.isFuzzy?'VERIFY':'PURCHASE',it.recipes.join('; '),it.fuzzyReason||'']));
+  const rows=[['Project','Parent Category','Subcategory','Ingredient','Qty Needed','Unit','Type','Recipes','Notes']];
+  items.forEach(it=>rows.push([pName,it.parentTab||'Uncategorized',it.subcat||'Uncategorized',it.name,it.totalQty,it.unit,it.isSponsored?'BRAND ITEM':it.isFuzzy?'VERIFY':'PURCHASE',it.recipes.join('; '),it.fuzzyReason||'']));
   const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
