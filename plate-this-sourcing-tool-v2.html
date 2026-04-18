@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plate This — Sourcing Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #F5F0E8; --warm-white: #FDFAF5; --ink: #1A1612;
+  --muted: #7A7166; --accent: #C85C2A; --accent-light: #F0E0D6;
+  --green: #3D6B4F; --green-light: #D4E8DC; --border: #D8D0C4;
+  --gold: #B8922A; --gold-light: #FFF8E1; --panel: #EDE8DF;
+  --purple: #6B4F8A; --purple-light: #EDE0F8;
+  --blue: #2A5C8A; --blue-light: #E0EEF8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+
+header {
+  background: var(--ink); color: var(--cream); padding: 14px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 3px solid var(--accent);
+}
+header h1 { font-family: 'DM Serif Display', serif; font-size: 20px; }
+header span { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+
+/* PROJECT BAR */
+.project-bar {
+  background: var(--warm-white); border-bottom: 1px solid var(--border);
+  padding: 12px 32px; display: flex; align-items: center; gap: 16px;
+}
+.project-bar label { font-size: 10px; font-family:'DM Mono',monospace; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+.project-bar input[type=text] {
+  flex: 1; max-width: 320px; padding: 7px 12px; border: 1px solid var(--border);
+  border-radius: 7px; font-family: 'DM Serif Display', serif; font-size: 15px;
+  background: transparent; color: var(--ink);
+}
+.project-bar input:focus { outline: none; border-color: var(--accent); }
+.project-bar .divider { width: 1px; height: 24px; background: var(--border); }
+.brand-input-wrap { display: flex; align-items: center; gap: 8px; flex: 1; }
+.brand-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.brand-tag {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--purple-light); color: var(--purple);
+  border: 1px solid #D0B8EC; border-radius: 100px;
+  padding: 2px 8px 2px 10px; font-size: 11px; font-weight: 600;
+}
+.brand-tag button { background: none; border: none; cursor: pointer; color: var(--purple); font-size: 13px; line-height: 1; padding: 0; }
+.brand-add-input { padding: 5px 10px; border: 1px dashed var(--border); border-radius: 100px; font-size: 11px; width: 140px; background: transparent; }
+.brand-add-input:focus { outline: none; border-color: var(--purple); }
+
+/* GSHEETS BAR */
+.gsheets-bar {
+  background: var(--green-light); border-bottom: 1px solid #B8DEC8;
+  padding: 8px 32px; display: flex; align-items: center; gap: 10px; font-size: 12px;
+}
+.gsheets-bar input { flex:1; max-width:480px; padding:5px 10px; border:1px solid #B8DEC8; border-radius:6px; font-size:12px; font-family:'DM Mono',monospace; background:white; }
+.gsheets-bar input:focus { outline:none; border-color:var(--green); }
+.gs-status { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.08em; }
+.gs-ok { color: var(--green); } .gs-err { color: var(--accent); } .gs-idle { color: var(--muted); }
+
+.app { display: grid; grid-template-columns: 1fr 440px; min-height: calc(100vh - 130px); }
+
+/* LEFT */
+.left { padding: 24px 28px; border-right: 1px solid var(--border); overflow-y: auto; }
+.section-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: 10px; padding: 22px 20px;
+  text-align: center; cursor: pointer; transition: all 0.2s; background: var(--warm-white);
+  margin-bottom: 14px; position: relative;
+}
+.upload-zone.drag-over { border-color: var(--accent); background: var(--accent-light); }
+.upload-zone.has-files { border-style: solid; border-color: var(--accent); }
+.file-preview-list { display:flex; flex-direction:column; gap:5px; }
+.file-pill {
+  display:flex; align-items:center; gap:8px; padding:7px 10px;
+  background:var(--warm-white); border:1px solid var(--border); border-radius:7px; font-size:12px;
+}
+.file-pill-icon { font-size:16px; flex-shrink:0; }
+.file-pill-name { flex:1; font-family:'DM Mono',monospace; font-size:11px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.file-pill-size { font-size:10px; color:var(--muted); white-space:nowrap; }
+.file-pill-del { background:none; border:none; cursor:pointer; color:var(--muted); font-size:14px; padding:0 2px; flex-shrink:0; }
+.file-pill-del:hover { color:var(--accent); }
+.upload-zone input[type=file] { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
+.upload-icon { font-size:28px; margin-bottom:6px; }
+.upload-zone p { font-size:12px; color:var(--muted); line-height:1.5; }
+.upload-zone strong { color:var(--ink); }
+
+.or-divider { display:flex;align-items:center;gap:10px;color:var(--muted);font-size:11px;margin:10px 0; }
+.or-divider::before,.or-divider::after { content:'';flex:1;height:1px;background:var(--border); }
+
+textarea.recipe-text {
+  width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;
+  font-family:'DM Mono',monospace;font-size:12px;line-height:1.7;resize:vertical;min-height:120px;
+  background:var(--warm-white);color:var(--ink);transition:border-color 0.2s;
+}
+textarea.recipe-text:focus { outline:none;border-color:var(--accent); }
+
+/* SCALING GRID */
+.scaling-grid {
+  background: var(--panel); border-radius: 10px; padding: 14px 16px; margin: 12px 0;
+}
+.scaling-grid-title { font-size:11px;font-weight:600;color:var(--ink);margin-bottom:10px; }
+.scaling-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.scale-field label { font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px; }
+.scale-field input { width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Mono',monospace;background:var(--warm-white); }
+.scale-field input:focus { outline:none;border-color:var(--accent); }
+.scale-field .optional-tag { font-size:9px;color:var(--muted);font-style:italic;margin-left:4px; }
+
+.btn { padding:9px 18px;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all 0.15s;white-space:nowrap; }
+.btn-primary { background:var(--accent);color:white; }
+.btn-primary:hover { background:#B04E22;transform:translateY(-1px); }
+.btn-primary:disabled { background:var(--border);color:var(--muted);cursor:not-allowed;transform:none; }
+.btn-ghost { background:transparent;color:var(--muted);border:1px solid var(--border);font-size:12px;padding:6px 12px; }
+.btn-ghost:hover { background:var(--panel);color:var(--ink); }
+.btn-sm { padding:4px 10px;font-size:11px; }
+
+.extract-row { display:flex;gap:10px;align-items:center;margin-top:10px; }
+.note-text { font-size:10px;color:var(--muted);font-style:italic;margin-top:4px; }
+
+/* RECIPE CARD */
+.recipe-card { background:var(--warm-white);border:1px solid var(--border);border-radius:10px;padding:18px;margin-top:16px;animation:slideIn 0.3s ease; }
+@keyframes slideIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.recipe-card h3 { font-family:'DM Serif Display',serif;font-size:17px;margin-bottom:3px; }
+.recipe-meta { font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px; }
+
+.ing-table { width:100%;border-collapse:collapse; }
+.ing-table th { font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:5px 6px;border-bottom:1px solid var(--border); }
+.ing-table td { padding:6px 6px;font-size:12px;border-bottom:1px solid #F0EAE0;vertical-align:middle; }
+.ing-table tr:last-child td { border-bottom:none; }
+.qty-col { font-family:'DM Mono',monospace;font-size:11px;text-align:right; }
+.qty-orig { color:var(--muted); }
+.qty-scaled { color:var(--accent);font-weight:500; }
+
+/* Category badges in table */
+.cat-badge { font-size:9px;padding:2px 6px;border-radius:100px;font-family:'DM Mono',monospace;font-weight:500;text-transform:uppercase;letter-spacing:0.06em; }
+.cat-meat { background:#FFE8E0;color:#A03020; }
+.cat-produce { background:#E0F0E8;color:#2A6040; }
+.cat-seasoning { background:#FFF5E0;color:#8A6020; }
+.cat-other { background:var(--panel);color:var(--muted); }
+.cat-sponsored { background:var(--purple-light);color:var(--purple); }
+
+.ing-row { cursor:pointer;transition:background 0.1s; }
+.ing-row:hover { background:#FAF5EE; }
+.ing-row.is-sponsored { background:var(--purple-light); }
+.ing-row.is-fuzzy { background:#FFFBEA; }
+
+.row-actions { display:flex;gap:4px;align-items:center; }
+.icon-btn { background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 4px;border-radius:4px;transition:color 0.1s; }
+.icon-btn:hover { color:var(--ink);background:var(--panel); }
+.icon-btn.sponsored-on { color:var(--purple); }
+.icon-btn.fuzzy-on { color:var(--gold); }
+
+.inline-edit-row td { padding:5px 6px !important;background:var(--accent-light) !important; }
+.inline-edit { display:flex;gap:5px;align-items:center; }
+.inline-edit input, .inline-edit select { padding:4px 7px;font-size:11px;border:1px solid var(--border);border-radius:5px;font-family:'DM Mono',monospace;background:white; }
+
+.card-actions { display:flex;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border); }
+
+.recipes-sidebar { background:var(--panel);border-radius:10px;padding:14px;margin-top:20px; }
+.recipe-pill { display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:white;border-radius:7px;margin-bottom:5px;font-size:12px;cursor:pointer;border:1px solid transparent;transition:all 0.15s; }
+.recipe-pill:hover { border-color:var(--accent); }
+.recipe-pill.active { border-color:var(--accent);background:var(--accent-light); }
+.pill-meta { font-size:10px;font-family:'DM Mono',monospace;color:var(--muted); }
+
+/* RIGHT */
+.right { background:var(--warm-white);padding:24px 24px;overflow-y:auto;display:flex;flex-direction:column; }
+.right h2 { font-family:'DM Serif Display',serif;font-size:19px;margin-bottom:3px; }
+
+.tab-row { display:flex;gap:2px;margin:12px 0;background:var(--panel);border-radius:8px;padding:3px; }
+.tab { flex:1;padding:6px;text-align:center;font-size:11px;font-weight:600;border-radius:6px;cursor:pointer;color:var(--muted);transition:all 0.15s; }
+.tab.active { background:white;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+
+.summary-bar { display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px; }
+.summary-tile { text-align:center;padding:10px 6px;border-radius:8px;border:1px solid var(--border); }
+.summary-tile .tile-num { font-family:'DM Serif Display',serif;font-size:24px;display:block; }
+.summary-tile .tile-label { font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted); }
+.tile-ok{background:var(--green-light)} .tile-low{background:#FFFBEA} .tile-buy{background:#FEF0EA} .tile-sp{background:var(--purple-light)}
+
+/* MASTER LIST ITEMS */
+.sourcing-item {
+  display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+  padding:8px 10px;border-radius:7px;font-size:12px;margin-bottom:3px;
+  border:1px solid transparent;transition:all 0.15s;
+}
+.sourcing-item.matched{background:var(--green-light);border-color:#B8DEC8}
+.sourcing-item.partial{background:#FFFBEA;border-color:#EDD98A}
+.sourcing-item.unmatched{background:#FEF0EA;border-color:#F5C8B4}
+.sourcing-item.sponsored-item{background:var(--purple-light);border-color:#D0B8EC}
+.sourcing-item.combined-item{background:var(--blue-light);border-color:#A8C8E8}
+
+.item-name{font-weight:500}
+.item-need{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+.status-badge{font-size:9px;font-family:'DM Mono',monospace;font-weight:600;padding:3px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap}
+.badge-ok{background:var(--green);color:white}
+.badge-buy{background:var(--accent);color:white}
+.badge-low{background:var(--gold);color:white}
+.badge-manual{background:var(--muted);color:white}
+.badge-sp{background:var(--purple);color:white}
+.badge-combine{background:var(--blue);color:white}
+.stock-info{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-align:right}
+
+/* EDITABLE MASTER ROW */
+.master-row { border-radius:7px;overflow:hidden;margin-bottom:3px; }
+.master-row-main {
+  display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;
+  padding:8px 10px;font-size:12px;border:1px solid transparent;border-radius:7px;
+}
+.master-row-main.matched{background:var(--green-light);border-color:#B8DEC8}
+.master-row-main.partial{background:#FFFBEA;border-color:#EDD98A}
+.master-row-main.unmatched{background:#FEF0EA;border-color:#F5C8B4}
+.master-row-main.sponsored-item{background:var(--purple-light);border-color:#D0B8EC}
+.master-row-main.combined-item{background:var(--blue-light);border-color:#A8C8E8}
+.master-row-main.flagged-fuzzy{border-left:3px solid var(--gold)}
+
+.master-edit-row { padding:8px 10px;background:#FDFAF5;border:1px solid var(--border);border-top:none;border-radius:0 0 7px 7px;display:none; }
+.master-edit-row.open{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.master-edit-row input,.master-edit-row select { padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:'DM Mono',monospace;background:white; }
+.master-edit-row input[type=text]{flex:1;min-width:120px}
+.master-edit-row input[type=number]{width:70px}
+
+.combine-suggestion {
+  background:var(--blue-light);border:1px dashed #A8C8E8;border-radius:7px;
+  padding:8px 12px;margin-bottom:6px;font-size:11px;display:flex;align-items:center;gap:8px;
+}
+.combine-suggestion button{font-size:10px;padding:3px 8px;}
+
+.fuzzy-warning { background:var(--gold-light);border:1px solid #EDD98A;border-radius:6px;padding:6px 10px;font-size:10px;font-family:'DM Mono',monospace;color:#6B5010;margin-top:3px; }
+
+.inventory-search { margin:8px 0;position:relative; }
+.inventory-search input { width:100%;padding:8px 10px 8px 30px;border:1px solid var(--border);border-radius:7px;font-size:12px; }
+.inventory-search input:focus{outline:none;border-color:var(--accent)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+
+.final-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--border);font-size:12px}
+.final-item:last-child{border-bottom:none}
+.fi-name{font-weight:500}.fi-qty{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)}
+.fi-sp{color:var(--purple);font-size:9px;font-family:'DM Mono',monospace;font-weight:600}
+
+.export-actions{margin-top:14px;display:flex;gap:6px;flex-wrap:wrap}
+
+.alert{padding:9px 12px;border-radius:7px;font-size:11px;margin-bottom:10px;line-height:1.5}
+.alert-info{background:var(--accent-light);border:1px solid #E8C0A8;color:#7A3A1A}
+.alert-purple{background:var(--purple-light);border:1px solid #D0B8EC;color:#4A2A6A}
+
+.empty-state{text-align:center;padding:32px 16px;color:var(--muted)}
+.empty-state .big{font-size:36px;margin-bottom:8px}
+.empty-state p{font-size:12px;line-height:1.6}
+
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(26,22,18,0.65);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--cream)}
+.loading-overlay.show{display:flex}
+.spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.filter-chip{padding:3px 9px;font-size:10px;border:1px solid var(--border);border-radius:100px;cursor:pointer;background:white;font-family:'DM Mono',monospace;transition:all 0.15s}
+.filter-chip.active{background:var(--ink);color:white;border-color:var(--ink)}
+.filter-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+
+@media(max-width:900px){.app{grid-template-columns:1fr}.scaling-rows{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <span id="loadingText" style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.08em">Reading recipe...</span>
+</div>
+
+<header>
+  <h1>🍽 Plate This — Sourcing Calculator</h1>
+  <span>Food Styling · Pre-Production Tool v2</span>
+</header>
+
+<!-- PROJECT BAR -->
+<div class="project-bar">
+  <label>Project Name</label>
+  <input type="text" id="projectName" placeholder="e.g. Knorr Campaign Q3 2026" autocomplete="off">
+  <div class="divider"></div>
+  <label>Brand / Sponsored Items</label>
+  <div class="brand-input-wrap">
+    <div class="brand-tags" id="brandTags"></div>
+    <input class="brand-add-input" id="brandInput" placeholder="+ Add brand..." onkeydown="handleBrandKey(event)">
+  </div>
+</div>
+
+<!-- GOOGLE SHEETS SYNC BAR -->
+<div class="gsheets-bar">
+  <span>📊</span>
+  <label style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);white-space:nowrap">Inventory Sheet URL</label>
+  <input type="text" id="gsheetsUrl" placeholder="Paste your published Google Sheets CSV URL here..." onchange="loadGSheetsInventory()">
+  <button class="btn btn-ghost btn-sm" onclick="loadGSheetsInventory()" style="border-color:#B8DEC8;color:var(--green)">Sync Now</button>
+  <span class="gs-status gs-idle" id="gsStatus">⬤ Not connected — using built-in inventory</span>
+</div>
+
+<div class="app">
+<!-- LEFT -->
+<div class="left">
+  <div class="section-label">Recipe Input</div>
+
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept="image/*,.pdf,.txt" multiple style="display:none">
+    <div class="upload-icon">📎</div>
+    <p><strong>Drop up to 3 recipe files here</strong><br>or <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="document.getElementById('fileInput').click()">browse files</span> — images, PDF, or text</p>
+  </div>
+  <div id="filePreviewList" style="display:none;margin-bottom:8px"></div>
+
+  <div class="or-divider">or paste recipe text</div>
+  <textarea class="recipe-text" id="recipeText" placeholder="Paste full recipe here — AI will extract the dish name and all ingredients automatically."></textarea>
+
+  <!-- SCALING -->
+  <div class="scaling-grid">
+    <div class="scaling-grid-title">⚖️ Scaling Settings <span style="font-weight:300;font-size:11px;color:var(--muted)">— leave optional fields blank to use Takes value</span></div>
+    <div class="scaling-rows">
+      <div class="scale-field">
+        <label>Number of Takes <span style="color:var(--accent)">*</span></label>
+        <input type="number" id="numTakes" value="5" min="1" max="20">
+      </div>
+      <div class="scale-field">
+        <label>Meat Portion Buffer <span class="optional-tag">optional</span></label>
+        <input type="number" id="meatBuffer" placeholder="e.g. 3" min="1" max="20">
+      </div>
+      <div class="scale-field">
+        <label>Fresh Produce Buffer <span class="optional-tag">optional</span></label>
+        <input type="number" id="produceBuffer" placeholder="e.g. 4" min="1" max="20">
+      </div>
+      <div class="scale-field">
+        <label>Seasoning Buffer <span class="optional-tag">optional</span></label>
+        <input type="number" id="seasoningBuffer" placeholder="e.g. 6" min="1" max="20">
+      </div>
+    </div>
+  </div>
+
+  <div class="extract-row">
+    <button class="btn btn-primary" id="extractBtn" onclick="extractIngredients()" style="flex:1">✦ Extract &amp; Scale Recipe →</button>
+  </div>
+  <p class="note-text">★ AI auto-detects dish name, ingredient categories, and brand items matching your project brands above.</p>
+
+  <!-- Active Recipe Card -->
+  <div id="recipeCard" style="display:none"></div>
+
+  <!-- Project Recipes List -->
+  <div class="recipes-sidebar" id="recipesSidebar" style="display:none">
+    <div class="section-label" style="margin-bottom:8px">Project Recipes</div>
+    <div id="recipesList"></div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:6px;font-size:11px" onclick="clearAll()">✕ Clear All Recipes</button>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div class="right">
+  <h2 id="rightTitle">Sourcing & Inventory</h2>
+  <p style="font-size:11px;color:var(--muted)" id="rightSubtitle">Cross-checked against your pantry</p>
+
+  <div class="tab-row">
+    <div class="tab active" onclick="switchTab('sourcing',this)">Master List</div>
+    <div class="tab" onclick="switchTab('final',this)">Buy List</div>
+    <div class="tab" onclick="switchTab('inventory',this)">Pantry</div>
+  </div>
+
+  <!-- SOURCING TAB -->
+  <div id="tab-sourcing">
+    <div id="summaryBar" style="display:none" class="summary-bar">
+      <div class="summary-tile tile-ok"><span class="tile-num" id="countOk">0</span><span class="tile-label">In Stock</span></div>
+      <div class="summary-tile tile-low"><span class="tile-num" id="countLow">0</span><span class="tile-label">Low / Check</span></div>
+      <div class="summary-tile tile-buy"><span class="tile-num" id="countBuy">0</span><span class="tile-label">Need to Buy</span></div>
+      <div class="summary-tile tile-sp"><span class="tile-num" id="countSp">0</span><span class="tile-label">Sponsored</span></div>
+    </div>
+    <div id="combineSuggestions"></div>
+    <div id="masterSourcingList">
+      <div class="empty-state"><div class="big">🥕</div><p>Add a recipe on the left.<br>Each ingredient will be checked<br>against your pantry inventory.</p></div>
+    </div>
+  </div>
+
+  <!-- FINAL BUY TAB -->
+  <div id="tab-final" style="display:none">
+    <div id="finalBuyList">
+      <div class="empty-state"><div class="big">🛒</div><p>No recipes yet.<br>Your shopping list will appear here.</p></div>
+    </div>
+    <div class="export-actions" id="exportActions" style="display:none">
+      <button class="btn btn-primary" onclick="exportCSV()">↓ Export CSV</button>
+      <button class="btn btn-ghost" onclick="copyList()">Copy as Text</button>
+    </div>
+  </div>
+
+  <!-- INVENTORY TAB -->
+  <div id="tab-inventory" style="display:none">
+    <div class="inventory-search">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="inventorySearch" placeholder="Search pantry..." oninput="filterInventory()">
+    </div>
+    <div class="filter-row" id="catFilters"></div>
+    <div id="inventoryBrowser"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// ============================================================
+// BUILT-IN INVENTORY (fallback if no Google Sheets connected)
+// ============================================================
+let INVENTORY = [
+  {cat:"Canned Goods",name:"Pineapple Slices",stock:2,unit:"can",weight:"432g",status:"In stock"},
+  {cat:"Canned Goods",name:"Pineapple Tidbits",stock:3,unit:"can",weight:"227g",status:"In stock"},
+  {cat:"Canned Goods",name:"Spam",stock:1,unit:"can",weight:"340g",status:"In stock"},
+  {cat:"Canned Goods",name:"Tuna",stock:5,unit:"can",weight:"185g",status:"In stock"},
+  {cat:"Canned Goods",name:"Red Beans",stock:1,unit:"can",weight:"425g",status:"In stock"},
+  {cat:"Canned Goods",name:"White Beans",stock:5,unit:"can",weight:"400g",status:"In stock"},
+  {cat:"Canned Goods",name:"Corn Kernels",stock:1,unit:"can",weight:"425g",status:"In stock"},
+  {cat:"Canned Goods",name:"Black Beans",stock:2,unit:"can",weight:"180g",status:"In stock"},
+  {cat:"Canned Goods",name:"Garbanzos",stock:4,unit:"can",weight:"450g",status:"In stock"},
+  {cat:"Canned Goods",name:"Anchovies",stock:1,unit:"can",weight:"56g",status:"In stock"},
+  {cat:"Canned Goods",name:"Liver Spread",stock:5,unit:"can",weight:"85g",status:"In stock"},
+  {cat:"Canned Goods",name:"Diced Tomatoes",stock:1,unit:"can",weight:"400g",status:"In stock"},
+  {cat:"Canned Goods",name:"Whole Peeled Tomatoes",stock:1,unit:"can",weight:"400g",status:"In stock"},
+  {cat:"Canned Goods",name:"Mushroom",stock:1,unit:"can",weight:"400g",status:"In stock"},
+  {cat:"Bottled Goods",name:"Cornichons",stock:0,unit:"jar",weight:"350g",status:"Re-purchase needed"},
+  {cat:"Bottled Goods",name:"Pickle Relish",stock:3,unit:"jar",weight:"405g",status:"In stock"},
+  {cat:"Bottled Goods",name:"Capers",stock:1,unit:"jar",weight:"200g",status:"In stock"},
+  {cat:"Bottled Goods",name:"Green Olives",stock:0,unit:"jar",weight:"310g",status:"Re-purchase needed"},
+  {cat:"Bottled Goods",name:"Black Olives",stock:3,unit:"jar",weight:"310g",status:"In stock"},
+  {cat:"Bottled Goods",name:"Jalapeños",stock:3,unit:"jar",weight:"",status:"In stock"},
+  {cat:"Bottled Goods",name:"Atchara",stock:5,unit:"jar",weight:"",status:"In stock"},
+  {cat:"Bottled Goods",name:"Tahini",stock:2,unit:"jar",weight:"450g",status:"In stock"},
+  {cat:"Bottled Goods",name:"Sundried Tomatoes",stock:1,unit:"jar",weight:"690g",status:"In stock"},
+  {cat:"Bottled Goods",name:"Truffle Sauce",stock:1,unit:"jar",weight:"180g",status:"In stock"},
+  {cat:"Bottled Goods",name:"Classic Pesto",stock:2,unit:"jar",weight:"190g",status:"In stock"},
+  {cat:"Condiments",name:"Mustard",stock:5,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Condiments",name:"Banana Ketchup",stock:5,unit:"bottle",weight:"320g",status:"In stock"},
+  {cat:"Condiments",name:"Tomato Ketchup",stock:6,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Condiments",name:"Chili Garlic Sauce",stock:1,unit:"jar",weight:"226g",status:"In stock"},
+  {cat:"Condiments",name:"Bagoong",stock:1,unit:"jar",weight:"227g",status:"In stock"},
+  {cat:"Condiments",name:"Mayonnaise",stock:1,unit:"gallon",weight:"5.5L",status:"In stock"},
+  {cat:"Condiments",name:"Balsamic Glaze",stock:1,unit:"bottle",weight:"250mL",status:"In stock"},
+  {cat:"Condiments",name:"Wasabi",stock:4,unit:"tube",weight:"35g",status:"In stock"},
+  {cat:"Condiments",name:"BBQ Sauce",stock:2,unit:"bottle",weight:"1.13kg",status:"In stock"},
+  {cat:"Condiments",name:"Hoisin Sauce",stock:1,unit:"bottle",weight:"435mL",status:"In stock"},
+  {cat:"Condiments",name:"Sriracha",stock:2,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Condiments",name:"Fish Sauce",stock:2,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Condiments",name:"Oyster Sauce",stock:3,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Condiments",name:"Chiu Chow Chili Oil",stock:2,unit:"jar",weight:"205g",status:"In stock"},
+  {cat:"Cooking Mixes",name:"Coconut Milk",stock:1,unit:"pack",weight:"1L",status:"In stock"},
+  {cat:"Cooking Mixes",name:"Tomato Sauce",stock:1,unit:"pack",weight:"1kg",status:"In stock"},
+  {cat:"Cooking Mixes",name:"Tomato Paste",stock:6,unit:"pack",weight:"150g",status:"In stock"},
+  {cat:"Cooking Mixes",name:"Gochujang",stock:2,unit:"jar",weight:"",status:"In stock"},
+  {cat:"Cooking Mixes",name:"Miso Paste",stock:1,unit:"jar",weight:"",status:"In stock"},
+  {cat:"Cooking Mixes",name:"Tom Yum Paste",stock:1,unit:"jar",weight:"230g",status:"In stock"},
+  {cat:"Cooking Mixes",name:"Tamarind Paste",stock:1,unit:"jar",weight:"227g",status:"In stock"},
+  {cat:"Cooking Mixes",name:"Japanese Curry",stock:6,unit:"cubes",weight:"230g",status:"In stock"},
+  {cat:"Seasonings",name:"Chicken Powder",stock:1,unit:"tub",weight:"1kg",status:"In stock"},
+  {cat:"Seasonings",name:"Chicken Cubes",stock:1,unit:"tub",weight:"600g",status:"In stock"},
+  {cat:"Seasonings",name:"Beef Cubes",stock:24,unit:"pcs",weight:"",status:"In stock"},
+  {cat:"Seasonings",name:"Liquid Seasoning",stock:3,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Seasonings",name:"Mirin",stock:2,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Seasonings",name:"Soy Sauce",stock:2,unit:"bottle",weight:"1L",status:"In stock"},
+  {cat:"Seasonings",name:"Dark Soy Sauce",stock:2,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Seasonings",name:"Japanese Soy Sauce",stock:1,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Seasonings",name:"Worcestershire Sauce",stock:3,unit:"bottle",weight:"290mL",status:"In stock"},
+  {cat:"Seasonings",name:"Vinegar",stock:1,unit:"bottle",weight:"1L",status:"In stock"},
+  {cat:"Seasonings",name:"Apple Cider Vinegar",stock:1,unit:"bottle",weight:"473mL",status:"In stock"},
+  {cat:"Seasonings",name:"Red Wine Vinegar",stock:2,unit:"bottle",weight:"500mL",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Rice",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Spaghetti",stock:2,unit:"pack",weight:"1kg",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Penne Pasta",stock:3,unit:"pack",weight:"500g",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Linguini",stock:1,unit:"pack",weight:"500g",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Elbow Macaroni",stock:5,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Egg Noodles",stock:3,unit:"pack",weight:"500g",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Rice Noodles",stock:1,unit:"pack",weight:"400g",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Ramen Noodles",stock:4,unit:"pack",weight:"500g",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Bihon",stock:1,unit:"pack",weight:"454g",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Rolled Oats",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Quinoa",stock:1,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Noodles & Grains",name:"Basmati Rice",stock:1,unit:"pack",weight:"2kg",status:"In stock"},
+  {cat:"Cooking Spices",name:"Garlic Powder",stock:2,unit:"jar",weight:"45g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Garlic Bits",stock:10,unit:"jar",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Crispy Garlic",stock:10,unit:"jar",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Black Pepper",stock:5,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Black Peppercorns",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"White Pepper",stock:1,unit:"bottle",weight:"31g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Curry Powder",stock:3,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Chili Flakes",stock:7,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Cayenne Pepper",stock:3,unit:"bottle",weight:"26g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Spanish Paprika",stock:31,unit:"pack",weight:"3g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Annatto Powder",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Turmeric Powder",stock:6,unit:"pack",weight:"30g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Coriander Seeds",stock:1,unit:"pack",weight:"25g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Cumin",stock:2,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Bay Leaves",stock:4,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Italian Seasoning",stock:2,unit:"bottle",weight:"10g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Rosemary",stock:4,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Thyme",stock:3,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Oregano",stock:4,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Five Spice",stock:2,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Sesame Seeds",stock:4,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Sea Salt",stock:5,unit:"jar",weight:"950g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Iodized Salt",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Star Anise",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Cloves",stock:2,unit:"jar",weight:"27g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Taco Seasoning",stock:2,unit:"pack",weight:"40g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Cajun Seasoning",stock:1,unit:"jar",weight:"640g",status:"In stock"},
+  {cat:"Cooking Spices",name:"Nori Sheets",stock:3,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Bonito Flakes",stock:6,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Dried Shiitake",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Cooking Spices",name:"Togarashi",stock:3,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Oils",name:"Sesame Oil",stock:1,unit:"bottle",weight:"410mL",status:"In stock"},
+  {cat:"Oils",name:"Canola Oil",stock:2,unit:"bottle",weight:"2L",status:"In stock"},
+  {cat:"Oils",name:"Truffle Oil",stock:1,unit:"bottle",weight:"250mL",status:"In stock"},
+  {cat:"Oils",name:"Olive Oil",stock:2,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Oils",name:"Vegetable Oil",stock:2,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Oils",name:"Vegetable Shortening",stock:1,unit:"jar",weight:"1.36kg",status:"In stock"},
+  {cat:"Dairy",name:"Evaporated Milk",stock:2,unit:"can",weight:"360mL",status:"In stock"},
+  {cat:"Dairy",name:"Condensed Milk",stock:4,unit:"can",weight:"377g",status:"In stock"},
+  {cat:"Dairy",name:"Fresh Milk",stock:6,unit:"pack",weight:"1L",status:"In stock"},
+  {cat:"Dairy",name:"All-Purpose Cream",stock:7,unit:"pack",weight:"250g",status:"In stock"},
+  {cat:"Dairy",name:"Margarine",stock:2,unit:"tub",weight:"250g",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Muscovado Sugar",stock:1,unit:"pack",weight:"1kg",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Brown Sugar",stock:5,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"White Sugar",stock:0,unit:"pack",weight:"2kg",status:"Re-purchase needed"},
+  {cat:"Sugars & Flours",name:"Powdered Sugar",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"All-Purpose Flour",stock:3,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Bread Flour",stock:1,unit:"pack",weight:"1kg",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Almond Flour",stock:1,unit:"pack",weight:"1kg",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Rice Flour",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Cornstarch",stock:3,unit:"box",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Cocoa Powder",stock:2,unit:"tub",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Breadcrumbs",stock:4,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Yeast",stock:1,unit:"pack",weight:"125g",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Baking Powder",stock:1,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Baking Soda",stock:3,unit:"jar",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Matcha Powder",stock:1,unit:"pack",weight:"100g",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Tapioca Starch",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Potato Starch",stock:4,unit:"pack",weight:"350g",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Cornmeal",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Tempura Flour",stock:1,unit:"pack",weight:"700g",status:"In stock"},
+  {cat:"Sugars & Flours",name:"Cassava Starch",stock:2,unit:"pack",weight:"500g",status:"In stock"},
+  {cat:"Syrups & Jams",name:"Peanut Butter",stock:5,unit:"jar",weight:"",status:"In stock"},
+  {cat:"Syrups & Jams",name:"Honey",stock:3,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Syrups & Jams",name:"Maple Syrup",stock:1,unit:"bottle",weight:"370mL",status:"In stock"},
+  {cat:"Syrups & Jams",name:"Light Corn Syrup",stock:9,unit:"bottle",weight:"",status:"In stock"},
+  {cat:"Syrups & Jams",name:"Chocolate Syrup",stock:1,unit:"pack",weight:"1kg",status:"In stock"},
+  {cat:"Baking Mixes",name:"Gelatin",stock:21,unit:"pack",weight:"28g",status:"In stock"},
+  {cat:"Baking Mixes",name:"Tapioca Pearl",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Baking Mixes",name:"Cream of Tartar",stock:3,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Nuts & Seeds",name:"Almonds",stock:4,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Nuts & Seeds",name:"Walnuts",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Nuts & Seeds",name:"Cashew",stock:4,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Nuts & Seeds",name:"Peanuts",stock:7,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Nuts & Seeds",name:"Pistachio",stock:3,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Nuts & Seeds",name:"Chickpeas",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Nuts & Seeds",name:"Desiccated Coconut",stock:1,unit:"pack",weight:"500g",status:"In stock"},
+  {cat:"Chocolates",name:"Chocolate Chips",stock:3,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Chocolates",name:"Dark Chocolate",stock:1,unit:"pack",weight:"1kg",status:"In stock"},
+  {cat:"Chocolates",name:"White Chocolate",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Chocolates",name:"Milk Chocolate",stock:1,unit:"pack",weight:"500g",status:"In stock"},
+  {cat:"Meat & Poultry",name:"Pork Belly",stock:1,unit:"pack",weight:"1.5kg",status:"In stock"},
+  {cat:"Meat & Poultry",name:"Pork Liempo",stock:8,unit:"slab",weight:"",status:"In stock"},
+  {cat:"Meat & Poultry",name:"Whole Chicken",stock:1,unit:"pcs",weight:"",status:"In stock"},
+  {cat:"Meat & Poultry",name:"Chicken Thigh Fillet",stock:1,unit:"pack",weight:"900g",status:"In stock"},
+  {cat:"Meat & Poultry",name:"Lamb Rack",stock:4,unit:"fingers",weight:"",status:"In stock"},
+  {cat:"Seafood",name:"Kani Crabstick",stock:4,unit:"pack",weight:"250g",status:"In stock"},
+  {cat:"Seafood",name:"Mussels",stock:1,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Seafood",name:"Smoked Salmon",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Seafood",name:"Shrimp",stock:1,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Processed Meats",name:"Ham",stock:4,unit:"pack",weight:"250g",status:"In stock"},
+  {cat:"Processed Meats",name:"Hotdog",stock:1,unit:"pack",weight:"500g",status:"In stock"},
+  {cat:"Processed Meats",name:"Bacon",stock:4,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Processed Meats",name:"Chinese Sausage",stock:1,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Frozen",name:"Blueberries",stock:1,unit:"pack",weight:"400g",status:"In stock"},
+  {cat:"Frozen",name:"Strawberries",stock:1,unit:"pack",weight:"1kg",status:"In stock"},
+  {cat:"Frozen",name:"Green Peas",stock:2,unit:"pack",weight:"500g",status:"In stock"},
+  {cat:"Frozen",name:"Edamame",stock:1,unit:"pack",weight:"1kg",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Parmesan Cheese",stock:3,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Cheddar Cheese",stock:5,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Cream Cheese",stock:4,unit:"pack",weight:"225g",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Mozzarella",stock:4,unit:"pack",weight:"190g",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Feta Cheese",stock:1,unit:"pack",weight:"180g",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Brie",stock:2,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Goat Cheese",stock:1,unit:"pack",weight:"110g",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Butter",stock:6,unit:"bar",weight:"",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Sour Cream",stock:1,unit:"tub",weight:"240g",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Yogurt",stock:3,unit:"tub",weight:"",status:"In stock"},
+  {cat:"Chilled Dairy",name:"Whipping Cream",stock:1,unit:"box",weight:"1kg",status:"In stock"},
+  {cat:"Pastry Spices",name:"Vanilla Extract",stock:2,unit:"bottle",weight:"475mL",status:"In stock"},
+  {cat:"Pastry Spices",name:"Cinnamon Powder",stock:4,unit:"jar",weight:"",status:"In stock"},
+  {cat:"Pastry Spices",name:"Cinnamon Sticks",stock:5,unit:"pack",weight:"",status:"In stock"},
+  {cat:"Pastry Spices",name:"Nutmeg",stock:1,unit:"bottle",weight:"37g",status:"In stock"},
+];
+
+// COMBINE GROUPS — neutral equivalents
+const COMBINE_GROUPS = [
+  { label: "Neutral Oil", members: ["canola oil","vegetable oil","sunflower oil","corn oil","cooking oil"] },
+  { label: "Soy Sauce", members: ["soy sauce","dark soy sauce","japanese soy sauce","light soy sauce"] },
+  { label: "Sugar", members: ["white sugar","brown sugar","muscovado sugar","refined sugar"] },
+  { label: "All-Purpose Flour", members: ["flour","all-purpose flour","plain flour"] },
+  { label: "Salt", members: ["sea salt","iodized salt","rock salt","table salt","kosher salt","pink salt"] },
+  { label: "Cooking Oil", members: ["canola oil","vegetable oil","olive oil","sunflower oil"] },
+  { label: "Garlic (Fried/Bits)", members: ["garlic bits","fried garlic","crispy garlic","garlic flakes","garlic topping"] },
+];
+
+// FUZZY NAME HINTS — things AI commonly extracts ambiguously
+const FUZZY_HINTS = [
+  { pattern: /^garlic$/i, note: "Did you mean: fresh garlic cloves, garlic powder, or crispy garlic bits?" },
+  { pattern: /^garlic bits|fried garlic|crispy garlic/i, note: "Likely store-bought crispy garlic bits — matched to pantry 'Crispy Garlic' jar." },
+  { pattern: /^oil$|^cooking oil$/i, note: "Non-specific oil. Likely canola or vegetable oil — confirm with team." },
+  { pattern: /^sugar$/i, note: "Type unclear. May be white, brown, or muscovado — check recipe context." },
+  { pattern: /^chili$/i, note: "May refer to fresh chili, chili flakes, or chili sauce. Clarify." },
+  { pattern: /^milk$/i, note: "May be fresh milk, evaporated, or condensed. Check recipe context." },
+  { pattern: /^cream$/i, note: "Could be all-purpose cream, whipping cream, or sour cream." },
+  { pattern: /^broth|stock$/i, note: "Likely made with bouillon cubes — check if Chicken or Beef cubes apply." },
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let recipes = [];
+let masterList = []; // editable aggregated list
+let brands = [];
+let stagedFiles = []; // multi-file upload queue (max 3)
+let usingGSheets = false;
+
+// ============================================================
+// BRAND TAGS
+// ============================================================
+function handleBrandKey(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/,/g,'');
+    if (val && !brands.includes(val)) { brands.push(val); renderBrandTags(); }
+    e.target.value = '';
+  }
+}
+function removeBrand(b) { brands = brands.filter(x => x !== b); renderBrandTags(); }
+function renderBrandTags() {
+  document.getElementById('brandTags').innerHTML = brands.map(b =>
+    `<div class="brand-tag">${b}<button onclick="removeBrand('${b}')">×</button></div>`
+  ).join('');
+}
+
+// ============================================================
+// GOOGLE SHEETS SYNC
+// ============================================================
+async function loadGSheetsInventory() {
+  const url = document.getElementById('gsheetsUrl').value.trim();
+  if (!url) return;
+  const st = document.getElementById('gsStatus');
+  st.className = 'gs-status gs-idle'; st.textContent = '⬤ Connecting...';
+  try {
+    // Support both /edit and published /pub CSV URLs
+    let csvUrl = url;
+    if (url.includes('/edit') || url.includes('/pub')) {
+      // Convert to CSV export
+      csvUrl = url.replace('/edit', '/export?format=csv').replace(/\/pub.*/, '/pub?output=csv');
+    }
+    const resp = await fetch(csvUrl);
+    if (!resp.ok) throw new Error('Fetch failed');
+    const text = await resp.text();
+    const parsed = parseCSVInventory(text);
+    if (parsed.length > 0) {
+      INVENTORY = parsed;
+      usingGSheets = true;
+      st.className = 'gs-status gs-ok';
+      st.textContent = `⬤ Synced — ${parsed.length} items loaded`;
+      updateMasterList();
+    } else throw new Error('No data');
+  } catch(e) {
+    st.className = 'gs-status gs-err';
+    st.textContent = '⬤ Could not connect — using built-in inventory';
+  }
+}
+
+function parseCSVInventory(text) {
+  const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.toLowerCase());
+  const nameIdx = headers.findIndex(h => h.includes('item') || h.includes('name'));
+  const catIdx = headers.findIndex(h => h.includes('category') || h.includes('cat'));
+  const stockIdx = headers.findIndex(h => h.includes('stock'));
+  const unitIdx = headers.findIndex(h => h.includes('unit'));
+  const weightIdx = headers.findIndex(h => h.includes('weight'));
+  const statusIdx = headers.findIndex(h => h.includes('status'));
+  if (nameIdx < 0) return [];
+  return rows.slice(1).filter(r => r[nameIdx]).map(r => ({
+    name: r[nameIdx] || '',
+    cat: catIdx >= 0 ? r[catIdx] : 'General',
+    stock: parseFloat(r[stockIdx]) || 0,
+    unit: unitIdx >= 0 ? r[unitIdx] : '',
+    weight: weightIdx >= 0 ? r[weightIdx] : '',
+    status: statusIdx >= 0 ? r[statusIdx] : 'In stock',
+  }));
+}
+
+// ============================================================
+// CLAUDE API
+// ============================================================
+async function callClaude(userContent, systemPrompt) {
+  const body = {
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1000,
+    system: systemPrompt,
+    messages: Array.isArray(userContent) ? [{ role:"user", content: userContent }] : [{ role:"user", content: userContent }]
+  };
+  const resp = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
+  const data = await resp.json();
+  return data.content?.find(b => b.type==="text")?.text || "";
+}
+
+// ============================================================
+// EXTRACT INGREDIENTS
+// ============================================================
+async function extractIngredients() {
+  const text = document.getElementById("recipeText").value.trim();
+  const takes = parseInt(document.getElementById("numTakes").value) || 5;
+  const meatBuf = parseInt(document.getElementById("meatBuffer").value) || takes;
+  const produceBuf = parseInt(document.getElementById("produceBuffer").value) || takes;
+  const seasoningBuf = parseInt(document.getElementById("seasoningBuffer").value) || takes;
+
+  if (!text && stagedFiles.length === 0) { alert("Please paste a recipe or upload at least one file."); return; }
+  showLoading("AI is reading the recipe...");
+
+  const brandList = brands.length > 0 ? brands.join(', ') : 'none specified';
+
+  const systemPrompt = `You are an expert food stylist assistant. Extract structured ingredient data from recipes.
+Return ONLY valid JSON, no markdown, no explanation.
+Format:
+{
+  "title": "dish name extracted from recipe",
+  "servings": "original servings as number",
+  "ingredients": [
+    {
+      "name": "ingredient name (clear, simple)",
+      "quantity": "numeric amount as decimal",
+      "unit": "unit (tbsp/tsp/cup/g/kg/mL/L/pcs/cloves/stalks/leaves/slices/strips/to taste)",
+      "notes": "prep note if any (e.g. minced, sliced)",
+      "category": "one of: meat/produce/seasoning/dairy/dry/other",
+      "isFuzzy": true/false,
+      "fuzzyReason": "why it's ambiguous if isFuzzy is true",
+      "isSponsored": true/false,
+      "sponsoredReason": "if this matches a brand product: ${brandList}"
+    }
+  ]
+}
+Categories:
+- meat: all proteins (pork, chicken, beef, seafood, processed meats)
+- produce: fresh vegetables, fresh herbs, fresh fruits
+- seasoning: sauces, condiments, spices, oils, vinegars
+- dairy: milk, cream, cheese, butter, eggs
+- dry: flour, sugar, pasta, grains, noodles
+- other: anything else
+
+Flag isFuzzy=true when: ingredient name is generic ("oil","garlic","cream","milk","sugar") or could be interpreted multiple ways.
+Flag isSponsored=true when: ingredient clearly matches one of these client brands: ${brandList}
+If multiple files/pages are provided, treat them as one combined recipe document.`;
+
+  try {
+    // Build content array from all staged files + pasted text
+    let contentParts = [];
+    for (const file of stagedFiles) {
+      if (file.type.startsWith("image/")) {
+        const b64 = await fileToBase64(file);
+        contentParts.push({ type:"image", source:{type:"base64", media_type:file.type, data:b64} });
+      } else {
+        const txt = await file.text();
+        contentParts.push({ type:"text", text:`[File: ${file.name}]\n${txt}` });
+      }
+    }
+    if (text) contentParts.push({ type:"text", text:`[Pasted text]\n${text}` });
+    contentParts.push({ type:"text", text:"Extract the dish name and complete ingredient list from the above recipe content." });
+
+    // If only pasted text and no files, send as plain string for efficiency
+    const payload = contentParts.length === 1 && contentParts[0].type === 'text'
+      ? contentParts[0].text
+      : contentParts;
+
+    let raw = await callClaude(payload, systemPrompt);
+    raw = raw.replace(/```json|```/g,'').trim();
+    const match = raw.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(match ? match[0] : raw);
+
+    const recipeName = parsed.title || "Untitled Recipe";
+    const ingredients = (parsed.ingredients || []).map(ing => {
+      const origQty = parseFloat(ing.quantity) || 1;
+      const cat = ing.category || 'other';
+      const multiplier = cat === 'meat' ? meatBuf : cat === 'produce' ? produceBuf : cat === 'seasoning' ? seasoningBuf : takes;
+      return {
+        name: ing.name,
+        origQty, origUnit: ing.unit || '', notes: ing.notes || '',
+        scaledQty: Math.round(origQty * multiplier * 10) / 10,
+        scaledUnit: ing.unit || '',
+        category: cat, multiplier,
+        isFuzzy: ing.isFuzzy || false, fuzzyReason: ing.fuzzyReason || '',
+        isSponsored: ing.isSponsored || false, sponsoredReason: ing.sponsoredReason || '',
+        manualOverride: false,
+      };
+    });
+
+    const id = Date.now();
+    recipes.push({ id, name: recipeName, takes, meatBuf, produceBuf, seasoningBuf, ingredients });
+    renderRecipeCard(recipes[recipes.length-1]);
+    renderRecipesList();
+    rebuildMasterList();
+
+    // Clear inputs
+    document.getElementById("recipeText").value = '';
+    stagedFiles = [];
+    renderFilePreviews();
+  } catch(err) {
+    console.error(err);
+    alert("Could not extract ingredients. Please check your input and try again.");
+  }
+  hideLoading();
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(",")[1]); r.onerror = rej; r.readAsDataURL(file); });
+}
+
+// ============================================================
+// RECIPE CARD RENDER
+// ============================================================
+function catBadge(cat) {
+  const map = { meat:'cat-meat', produce:'cat-produce', seasoning:'cat-seasoning', other:'cat-other', dairy:'cat-other', dry:'cat-other' };
+  return `<span class="cat-badge ${map[cat]||'cat-other'}">${cat}</span>`;
+}
+
+function renderRecipeCard(recipe) {
+  const card = document.getElementById("recipeCard");
+  card.style.display = "block";
+  const scales = recipe.meatBuf !== recipe.takes || recipe.produceBuf !== recipe.takes || recipe.seasoningBuf !== recipe.takes;
+  card.innerHTML = `<div class="recipe-card">
+    <h3>${recipe.name}</h3>
+    <div class="recipe-meta">${recipe.takes} TAKES${scales ? ` · MEAT×${recipe.meatBuf} PRODUCE×${recipe.produceBuf} SEASONING×${recipe.seasoningBuf}` : ''} · ${recipe.ingredients.length} INGREDIENTS</div>
+    <table class="ing-table">
+      <thead><tr><th>Ingredient</th><th>Cat.</th><th>Original</th><th>Scaled</th><th></th></tr></thead>
+      <tbody id="ing-tbody-${recipe.id}">
+        ${recipe.ingredients.map((ing, i) => ingRow(recipe.id, i, ing)).join('')}
+      </tbody>
+    </table>
+    <div class="card-actions">
+      <button class="btn btn-ghost" onclick="addManualIng(${recipe.id})">+ Add Row</button>
+      <button class="btn btn-ghost" style="margin-left:auto" onclick="removeRecipe(${recipe.id})">✕ Remove</button>
+    </div>
+  </div>`;
+}
+
+function ingRow(rid, i, ing) {
+  const fuzzyClass = ing.isFuzzy ? 'is-fuzzy' : '';
+  const spClass = ing.isSponsored ? 'is-sponsored' : '';
+  const spIcon = ing.isSponsored ? '⭐' : '☆';
+  const spTip = ing.isSponsored ? `title="${ing.sponsoredReason || 'Brand product'}"` : '';
+  const fuzzyIcon = ing.isFuzzy ? '⚠' : '';
+  return `<tr class="ing-row ${fuzzyClass} ${spClass}" id="ir-${rid}-${i}">
+    <td>${ing.name}${ing.notes ? `<span style="font-size:10px;color:var(--muted);display:block">${ing.notes}</span>` : ''}${ing.isFuzzy ? `<div class="fuzzy-warning">⚠ ${ing.fuzzyReason||'Ambiguous item — please verify'}</div>` : ''}</td>
+    <td>${catBadge(ing.category)}${ing.isSponsored ? '<span class="cat-badge cat-sponsored" style="margin-left:3px">BRAND</span>' : ''}</td>
+    <td class="qty-col qty-orig">${ing.origQty} ${ing.origUnit}</td>
+    <td class="qty-col qty-scaled">${ing.scaledQty} ${ing.scaledUnit}<br><span style="font-size:9px;color:var(--muted)">×${ing.multiplier}</span></td>
+    <td><div class="row-actions">
+      <button class="icon-btn ${ing.isSponsored?'sponsored-on':''}" onclick="toggleSponsored(${rid},${i})" title="Mark as brand/sponsored item" ${spTip}>⭐</button>
+      <button class="icon-btn" onclick="editIngRow(${rid},${i})" title="Edit">✎</button>
+      <button class="icon-btn" onclick="deleteIng(${rid},${i})" title="Remove">✕</button>
+    </div></td>
+  </tr>`;
+}
+
+function toggleSponsored(rid, i) {
+  const r = recipes.find(x => x.id === rid); if (!r) return;
+  r.ingredients[i].isSponsored = !r.ingredients[i].isSponsored;
+  renderRecipeCard(r); rebuildMasterList();
+}
+
+function editIngRow(rid, i) {
+  const r = recipes.find(x => x.id === rid); if (!r) return;
+  const ing = r.ingredients[i];
+  const row = document.getElementById(`ir-${rid}-${i}`);
+  const cats = ['meat','produce','seasoning','dairy','dry','other'];
+  row.innerHTML = `<td colspan="5" class="inline-edit-row"><div class="inline-edit">
+    <input type="text" value="${ing.name}" id="ei-name-${i}" style="flex:1;min-width:100px">
+    <select id="ei-cat-${i}">${cats.map(c=>`<option ${c===ing.category?'selected':''}>${c}</option>`).join('')}</select>
+    <input type="number" value="${ing.scaledQty}" id="ei-qty-${i}" style="width:65px">
+    <input type="text" value="${ing.scaledUnit}" id="ei-unit-${i}" style="width:55px">
+    <input type="number" value="${ing.multiplier}" id="ei-mul-${i}" style="width:48px" title="Multiplier">
+    <button class="btn btn-primary btn-sm" onclick="saveIngRow(${rid},${i})">Save</button>
+    <button class="btn btn-ghost btn-sm" onclick="renderRecipeCard(recipes.find(x=>x.id===${rid}))">×</button>
+  </div></td>`;
+}
+
+function saveIngRow(rid, i) {
+  const r = recipes.find(x => x.id === rid); if (!r) return;
+  r.ingredients[i].name = document.getElementById(`ei-name-${i}`).value;
+  r.ingredients[i].category = document.getElementById(`ei-cat-${i}`).value;
+  r.ingredients[i].scaledQty = parseFloat(document.getElementById(`ei-qty-${i}`).value) || 0;
+  r.ingredients[i].scaledUnit = document.getElementById(`ei-unit-${i}`).value;
+  r.ingredients[i].multiplier = parseInt(document.getElementById(`ei-mul-${i}`).value) || r.takes;
+  renderRecipeCard(r); rebuildMasterList();
+}
+
+function deleteIng(rid, i) {
+  const r = recipes.find(x => x.id === rid); if (!r) return;
+  r.ingredients.splice(i, 1);
+  renderRecipeCard(r); rebuildMasterList();
+}
+
+function addManualIng(rid) {
+  const r = recipes.find(x => x.id === rid); if (!r) return;
+  r.ingredients.push({ name:"New Ingredient", origQty:1, origUnit:"pcs", scaledQty:1, scaledUnit:"pcs", category:"other", multiplier:r.takes, isFuzzy:false, isSponsored:false, notes:"" });
+  renderRecipeCard(r);
+  setTimeout(() => editIngRow(rid, r.ingredients.length - 1), 30);
+}
+
+function removeRecipe(id) {
+  recipes = recipes.filter(r => r.id !== id);
+  if (recipes.length === 0) { document.getElementById("recipeCard").style.display = "none"; }
+  else renderRecipeCard(recipes[recipes.length - 1]);
+  renderRecipesList(); rebuildMasterList();
+}
+function clearAll() { if (!confirm("Clear all recipes?")) return; recipes = []; masterList = []; document.getElementById("recipeCard").style.display = "none"; document.getElementById("recipesSidebar").style.display = "none"; updateMasterList(); }
+
+function renderRecipesList() {
+  const sb = document.getElementById("recipesSidebar");
+  const list = document.getElementById("recipesList");
+  if (recipes.length === 0) { sb.style.display = "none"; return; }
+  sb.style.display = "block";
+  list.innerHTML = recipes.map(r => `<div class="recipe-pill" onclick="renderRecipeCard(recipes.find(x=>x.id===${r.id}))">
+    <span>${r.name}</span><span class="pill-meta">${r.ingredients.length} items · ×${r.takes}</span>
+  </div>`).join('');
+}
+
+// ============================================================
+// MASTER LIST — build & render
+// ============================================================
+function rebuildMasterList() {
+  const map = {};
+  for (const recipe of recipes) {
+    for (const ing of recipe.ingredients) {
+      const key = ing.name.toLowerCase().trim();
+      if (!map[key]) {
+        map[key] = {
+          id: key, name: ing.name, totalQty: 0, unit: ing.scaledUnit,
+          recipes: [], category: ing.category, isSponsored: ing.isSponsored,
+          isFuzzy: ing.isFuzzy, fuzzyReason: ing.fuzzyReason,
+          manualStatus: null, // null = auto | 'buy' | 'ok' | 'low' | 'sponsored'
+          combined: false, combinedAs: '',
+          editOpen: false,
+        };
+      }
+      map[key].totalQty = Math.round((map[key].totalQty + ing.scaledQty) * 10) / 10;
+      if (!map[key].recipes.includes(recipe.name)) map[key].recipes.push(recipe.name);
+      if (ing.isSponsored) map[key].isSponsored = true;
+    }
+  }
+  masterList = Object.values(map);
+  updateMasterList();
+}
+
+function matchInventory(name) {
+  const s = name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
+  const words = s.split(' ').filter(w => w.length > 2);
+  let best = 0, bestItem = null;
+  for (const item of INVENTORY) {
+    const iname = item.name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
+    let score = 0;
+    if (iname === s) score = 100;
+    else if (iname.includes(s) || s.includes(iname)) score = 80;
+    else {
+      const iw = iname.split(' ');
+      const overlap = words.filter(w => iw.some(x => x.includes(w) || w.includes(x)));
+      score = (overlap.length / Math.max(words.length,1)) * 60;
+    }
+    if (score > best) { best = score; bestItem = item; }
+  }
+  return best >= 28 ? bestItem : null;
+}
+
+function detectCombineSuggestions() {
+  const suggestions = [];
+  for (const group of COMBINE_GROUPS) {
+    const matched = masterList.filter(ml =>
+      !ml.combined && group.members.some(m => ml.name.toLowerCase().includes(m) || m.includes(ml.name.toLowerCase()))
+    );
+    if (matched.length >= 2) suggestions.push({ group: group.label, items: matched });
+  }
+  return suggestions;
+}
+
+function applyCombine(groupLabel, itemIds) {
+  const items = masterList.filter(ml => itemIds.includes(ml.id));
+  if (items.length < 2) return;
+  const totalQty = items.reduce((s, i) => s + i.totalQty, 0);
+  const first = items[0];
+  first.combinedAs = groupLabel;
+  first.combined = true;
+  first.name = groupLabel;
+  first.totalQty = Math.round(totalQty * 10) / 10;
+  first.recipes = [...new Set(items.flatMap(i => i.recipes))];
+  // Remove the others
+  items.slice(1).forEach(i => { masterList = masterList.filter(ml => ml.id !== i.id); });
+  updateMasterList();
+}
+
+function updateMasterList() {
+  const container = document.getElementById("masterSourcingList");
+  const summBar = document.getElementById("summaryBar");
+
+  if (masterList.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="big">🥕</div><p>Add a recipe on the left.<br>Sourcing list will appear here.</p></div>`;
+    summBar.style.display = "none";
+    renderFinalList();
+    return;
+  }
+
+  // Combine suggestions
+  const suggestions = detectCombineSuggestions();
+  const sugBox = document.getElementById("combineSuggestions");
+  sugBox.innerHTML = suggestions.map(s => {
+    const ids = JSON.stringify(s.items.map(i=>i.id));
+    const names = s.items.map(i=>i.name).join(' + ');
+    return `<div class="combine-suggestion">
+      <span>💡 <strong>${names}</strong> → combine as <em>${s.group}</em>?</span>
+      <button class="btn btn-ghost btn-sm" onclick='applyCombine("${s.group}", ${ids})'>Combine</button>
+      <button class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">Dismiss</button>
+    </div>`;
+  }).join('');
+
+  let ok=0, low=0, buy=0, sp=0;
+  const buyItems = [];
+
+  container.innerHTML = masterList.map((ml, idx) => {
+    if (ml.isSponsored) { sp++; }
+
+    const invItem = matchInventory(ml.name);
+    let autoStatus = !invItem ? 'unmatched' : invItem.status === 'Re-purchase needed' || invItem.stock === 0 ? 'buy' : invItem.stock <= 1 ? 'low' : 'ok';
+    const status = ml.manualStatus || (ml.isSponsored ? 'sponsored' : autoStatus);
+
+    if (status === 'ok') ok++;
+    else if (status === 'low') { low++; buyItems.push(ml); }
+    else if (status === 'buy' || status === 'unmatched') { buy++; buyItems.push(ml); }
+
+    const rowClass = ml.isSponsored ? 'sponsored-item' : ml.combined ? 'combined-item' : status === 'ok' ? 'matched' : status === 'low' ? 'partial' : 'unmatched';
+    const fuzzyClass = ml.isFuzzy ? 'flagged-fuzzy' : '';
+
+    const hint = FUZZY_HINTS.find(h => h.pattern.test(ml.name));
+
+    const badge = ml.isSponsored ? `<span class="status-badge badge-sp">BRAND</span>` :
+      ml.combined ? `<span class="status-badge badge-combine">COMBINED</span>` :
+      status === 'ok' ? `<span class="status-badge badge-ok">In Stock</span>` :
+      status === 'low' ? `<span class="status-badge badge-low">Low Stock</span>` :
+      status === 'unmatched' ? `<span class="status-badge badge-manual">⚠ Check</span>` :
+      `<span class="status-badge badge-buy">Buy</span>`;
+
+    const stockInfo = invItem ? `${invItem.stock} ${invItem.unit}${invItem.weight ? ' · '+invItem.weight : ''}` : 'Not in pantry';
+
+    return `<div class="master-row" id="mr-${idx}">
+      <div class="master-row-main ${rowClass} ${fuzzyClass}">
+        <div>
+          <div class="item-name">${ml.name}${ml.isSponsored ? ' <span style="color:var(--purple);font-size:11px">⭐ '+ml.sponsoredReason+'</span>' : ''}${ml.combined ? ` <span style="color:var(--blue);font-size:10px">(merged)</span>` : ''}</div>
+          <div class="item-need">Need: ${ml.totalQty} ${ml.unit} · ${ml.recipes.join(', ')}</div>
+          ${ml.isFuzzy ? `<div class="fuzzy-warning">⚠ ${ml.fuzzyReason||hint?.note||'Ambiguous — please verify before sourcing'}</div>` : hint ? `<div class="fuzzy-warning" style="border-color:#B8DEC8;background:var(--green-light);color:#2A6040">💡 ${hint.note}</div>` : ''}
+        </div>
+        <div class="stock-info">${stockInfo}</div>
+        ${badge}
+        <div style="display:flex;gap:4px">
+          <button class="icon-btn" onclick="toggleMasterEdit(${idx})" title="Edit">✎</button>
+          <button class="icon-btn ${ml.isSponsored?'sponsored-on':''}" onclick="toggleMasterSponsored(${idx})" title="Toggle sponsored">⭐</button>
+          <button class="icon-btn" onclick="deleteMasterItem(${idx})" title="Remove">✕</button>
+        </div>
+      </div>
+      <div class="master-edit-row ${ml.editOpen?'open':''}" id="medit-${idx}">
+        <input type="text" value="${ml.name}" id="mname-${idx}" placeholder="Ingredient name" style="flex:1">
+        <input type="number" value="${ml.totalQty}" id="mqty-${idx}" style="width:70px" placeholder="Qty">
+        <input type="text" value="${ml.unit}" id="munit-${idx}" style="width:60px" placeholder="Unit">
+        <select id="mstatus-${idx}" onchange="setMasterStatus(${idx})">
+          <option value="">Auto</option>
+          <option value="ok" ${ml.manualStatus==='ok'?'selected':''}>✓ In Stock</option>
+          <option value="low" ${ml.manualStatus==='low'?'selected':''}>⚡ Low Stock</option>
+          <option value="buy" ${ml.manualStatus==='buy'?'selected':''}>🛒 Buy</option>
+          <option value="sponsored" ${ml.manualStatus==='sponsored'?'selected':''}>⭐ Brand Item</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="saveMasterItem(${idx})">Save</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleMasterEdit(${idx})">×</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  summBar.style.display = "grid";
+  document.getElementById("countOk").textContent = ok;
+  document.getElementById("countLow").textContent = low;
+  document.getElementById("countBuy").textContent = buy;
+  document.getElementById("countSp").textContent = sp;
+
+  renderFinalList(buyItems);
+}
+
+function toggleMasterEdit(idx) {
+  masterList[idx].editOpen = !masterList[idx].editOpen;
+  updateMasterList();
+}
+function saveMasterItem(idx) {
+  masterList[idx].name = document.getElementById(`mname-${idx}`).value;
+  masterList[idx].totalQty = parseFloat(document.getElementById(`mqty-${idx}`).value) || 0;
+  masterList[idx].unit = document.getElementById(`munit-${idx}`).value;
+  masterList[idx].editOpen = false;
+  updateMasterList();
+}
+function setMasterStatus(idx) {
+  masterList[idx].manualStatus = document.getElementById(`mstatus-${idx}`).value || null;
+  updateMasterList();
+}
+function toggleMasterSponsored(idx) {
+  masterList[idx].isSponsored = !masterList[idx].isSponsored;
+  if (masterList[idx].isSponsored) masterList[idx].manualStatus = 'sponsored';
+  else masterList[idx].manualStatus = null;
+  updateMasterList();
+}
+function deleteMasterItem(idx) {
+  masterList.splice(idx, 1);
+  updateMasterList();
+}
+
+// ============================================================
+// FINAL BUY LIST
+// ============================================================
+function renderFinalList(items) {
+  items = items || [];
+  const container = document.getElementById("finalBuyList");
+  const actions = document.getElementById("exportActions");
+  if (items.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="big">${recipes.length > 0 ? '✅' : '🛒'}</div><p>${recipes.length > 0 ? 'Everything is in stock!' : 'No recipes added yet.'}</p></div>`;
+    actions.style.display = "none"; return;
+  }
+  const pName = document.getElementById("projectName").value || "Project";
+  container.innerHTML = `
+    <div class="alert alert-info">Shopping list for <strong>${pName}</strong> — ${items.length} item${items.length !== 1 ? 's' : ''} to purchase.</div>
+    ${items.filter(i => !i.isSponsored).length > 0 ? `<div class="section-label" style="margin-bottom:6px">TO PURCHASE</div>` : ''}
+    ${items.filter(i => !i.isSponsored).map(it => `
+      <div class="final-item">
+        <span class="fi-name">${it.name}${it.isFuzzy ? ' <span style="color:var(--gold);font-size:10px">⚠ verify</span>' : ''}</span>
+        <span class="fi-qty">${it.totalQty} ${it.unit}</span>
+      </div>`).join('')}
+    ${items.filter(i => i.isSponsored).length > 0 ? `
+      <div class="section-label" style="margin:12px 0 6px">BRAND / SPONSORED ITEMS</div>
+      <div class="alert alert-purple">These are client brand products — coordinate with account team for sourcing.</div>
+      ${items.filter(i => i.isSponsored).map(it => `
+        <div class="final-item">
+          <span class="fi-name">${it.name}</span>
+          <span class="fi-sp">⭐ BRAND</span>
+          <span class="fi-qty">${it.totalQty} ${it.unit}</span>
+        </div>`).join('')}` : ''}`;
+  actions.style.display = "flex";
+  actions._items = items;
+}
+
+function exportCSV() {
+  const pName = document.getElementById("projectName").value || "Project";
+  const items = document.getElementById("exportActions")._items || [];
+  const rows = [["Project","Ingredient","Qty Needed","Unit","Type","Recipes","Notes"]];
+  items.forEach(it => rows.push([pName, it.name, it.totalQty, it.unit, it.isSponsored ? 'BRAND ITEM' : it.isFuzzy ? 'VERIFY' : 'PURCHASE', it.recipes.join('; '), it.fuzzyReason || '']));
+  const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download = `${pName.replace(/\s+/g,'-')}-sourcing-list.csv`; a.click();
+}
+
+function copyList() {
+  const pName = document.getElementById("projectName").value || "Project";
+  const items = document.getElementById("exportActions")._items || [];
+  const text = `FINAL SOURCING LIST — ${pName}\n\nTO PURCHASE:\n` +
+    items.filter(i=>!i.isSponsored).map(it=>`• ${it.name} — ${it.totalQty} ${it.unit}${it.isFuzzy?' (verify)':''}`).join('\n') +
+    (items.filter(i=>i.isSponsored).length ? `\n\nBRAND ITEMS (coordinate with account team):\n` + items.filter(i=>i.isSponsored).map(it=>`• ${it.name} — ${it.totalQty} ${it.unit}`).join('\n') : '');
+  navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
+}
+
+// ============================================================
+// INVENTORY BROWSER
+// ============================================================
+function renderInventoryBrowser(q='', catF='') {
+  const cats = [...new Set(INVENTORY.map(i => i.cat))];
+  document.getElementById('catFilters').innerHTML =
+    `<div class="filter-chip ${!catF?'active':''}" onclick="renderInventoryBrowser('${q}','')">All</div>` +
+    cats.map(c => `<div class="filter-chip ${catF===c?'active':''}" onclick="renderInventoryBrowser('${q}','${c}')">${c}</div>`).join('');
+  const qL = q.toLowerCase();
+  let items = INVENTORY.filter(i => (!qL || i.name.toLowerCase().includes(qL) || i.cat.toLowerCase().includes(qL)) && (!catF || i.cat === catF));
+  const grouped = {};
+  items.forEach(i => { if (!grouped[i.cat]) grouped[i.cat]=[]; grouped[i.cat].push(i); });
+  document.getElementById('inventoryBrowser').innerHTML = Object.entries(grouped).map(([cat,citems]) => `
+    <div style="margin-bottom:14px">
+      <div class="section-label" style="margin-bottom:5px">${cat}</div>
+      ${citems.map(i => `<div class="master-row-main ${i.stock>1?'matched':i.stock>0?'partial':'unmatched'}" style="margin-bottom:3px">
+        <div><div class="item-name">${i.name}</div><div class="item-need">${i.unit}${i.weight?' · '+i.weight:''}</div></div>
+        <div class="stock-info">${i.stock} ${i.unit}</div>
+        <span class="status-badge ${i.stock>1?'badge-ok':i.stock>0?'badge-low':'badge-buy'}">${i.stock>1?'In Stock':i.stock>0?'Low':'Buy'}</span>
+        <div></div>
+      </div>`).join('')}
+    </div>`).join('');
+}
+
+function filterInventory() { renderInventoryBrowser(document.getElementById('inventorySearch').value); }
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tab, el) {
+  ['sourcing','final','inventory'].forEach(t => document.getElementById(`tab-${t}`).style.display = t===tab?'block':'none');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if (tab === 'inventory') renderInventoryBrowser();
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function showLoading(msg) { document.getElementById("loadingText").textContent = msg; document.getElementById("loadingOverlay").classList.add("show"); }
+function hideLoading() { document.getElementById("loadingOverlay").classList.remove("show"); }
+
+// ============================================================
+// MULTI-FILE DRAG & DROP (up to 3 files)
+// ============================================================
+let stagedFiles = []; // Array of File objects
+
+function addFiles(newFiles) {
+  const allowed = ['image/jpeg','image/png','image/webp','image/gif','application/pdf','text/plain'];
+  for (const f of newFiles) {
+    if (stagedFiles.length >= 3) { alert("Maximum 3 files per recipe. Remove one to add another."); break; }
+    if (stagedFiles.find(x => x.name === f.name)) continue; // dedupe
+    stagedFiles.push(f);
+  }
+  renderFilePreviews();
+}
+
+function removeFile(idx) {
+  stagedFiles.splice(idx, 1);
+  renderFilePreviews();
+}
+
+function renderFilePreviews() {
+  const zone = document.getElementById("uploadZone");
+  const list = document.getElementById("filePreviewList");
+  if (stagedFiles.length === 0) {
+    list.style.display = "none"; list.innerHTML = "";
+    zone.classList.remove("has-files");
+    return;
+  }
+  zone.classList.add("has-files");
+  list.style.display = "block";
+  list.innerHTML = `<div class="file-preview-list">` +
+    stagedFiles.map((f, i) => {
+      const icon = f.type.startsWith('image/') ? '🖼' : f.type === 'application/pdf' ? '📄' : '📝';
+      const size = f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : Math.round(f.size/1024)+'KB';
+      return `<div class="file-pill">
+        <span class="file-pill-icon">${icon}</span>
+        <span class="file-pill-name" title="${f.name}">${f.name}</span>
+        <span class="file-pill-size">${size}</span>
+        <button class="file-pill-del" onclick="removeFile(${i})" title="Remove">×</button>
+      </div>`;
+    }).join('') +
+    (stagedFiles.length < 3 ? `<div style="font-size:10px;color:var(--muted);font-style:italic;text-align:center;margin-top:2px">${3 - stagedFiles.length} more file${3 - stagedFiles.length !== 1 ? 's' : ''} can be added</div>` : '') +
+    `</div>`;
+}
+
+const zone = document.getElementById("uploadZone");
+const fileInput = document.getElementById("fileInput");
+
+zone.addEventListener("dragover", e => { e.preventDefault(); e.stopPropagation(); zone.classList.add("drag-over"); });
+zone.addEventListener("dragleave", e => { e.preventDefault(); zone.classList.remove("drag-over"); });
+zone.addEventListener("drop", e => {
+  e.preventDefault(); e.stopPropagation();
+  zone.classList.remove("drag-over");
+  if (e.dataTransfer.files.length) addFiles(Array.from(e.dataTransfer.files));
+});
+zone.addEventListener("click", e => {
+  if (e.target.tagName === 'SPAN' && e.target.style.cursor === 'pointer') return; // let browse link handle
+  if (stagedFiles.length < 3) fileInput.click();
+});
+fileInput.addEventListener("change", e => {
+  if (e.target.files.length) addFiles(Array.from(e.target.files));
+  fileInput.value = ""; // reset so same file can be re-added after removal
+});
+
+// Update right panel subtitle with project name
+document.getElementById("projectName").addEventListener("input", e => {
+  const pn = e.target.value;
+  document.getElementById("rightSubtitle").textContent = pn ? `${pn} · Cross-checked against your pantry` : "Cross-checked against your pantry";
+});
+</script>
+</body>
+</html>
