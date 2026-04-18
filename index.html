@@ -581,20 +581,67 @@ const FUZZY_HINTS = [
   { pattern:/^broth$|^stock$/i, note:"Likely chicken or beef cubes — check recipe." },
 ];
 
-// INGREDIENT CATEGORY GUESSING
-const CATEGORY_RULES = [
-  { pattern:/chicken|pork|beef|lamb|fish|shrimp|prawn|crab|squid|tuna|salmon|bacon|ham|sausage|hotdog|egg/i, cat:'meat' },
-  { pattern:/lettuce|tomato|onion|garlic(?! powder| bits| flakes)$|spring onion|cucumber|carrot|pepper(?! powder| flakes)$|celery|spinach|herb|basil|parsley|cilantro|ginger|lemon|lime|calamansi|mango|banana|avocado/i, cat:'produce' },
-  { pattern:/oil|sauce|vinegar|soy|ketchup|mayo|mayonnaise|mustard|salt|pepper|spice|seasoning|paprika|cumin|turmeric|curry|chili|sriracha|hoisin|oyster|fish sauce|mirin|worcestershire/i, cat:'seasoning' },
-  { pattern:/milk|cream|butter|cheese|yogurt|evap|condensed/i, cat:'dairy' },
-  { pattern:/flour|sugar|starch|cornstarch|breadcrumb|pasta|noodle|rice|oat|bread/i, cat:'dry' },
+// ============================================================
+// CATEGORY MAP — hardcoded from Plate This actual inventory structure
+// Maps ingredient keywords → pantry category
+// ============================================================
+const CATEGORY_MAP = {
+  // Meat & Poultry
+  meat: /\b(chicken|pork|beef|lamb|fish|shrimp|prawn|crab|squid|tuna(?! can)$|salmon(?! smoked canned)$|bacon|ham|sausage|hotdog|liempo|kani|crabstick|mussels|tilapia|bangus|milkfish|ground meat|minced meat|meat|poultry|duck|turkey)\b/i,
+  // Fresh Produce — vegetables, fresh herbs, fresh fruit
+  produce: /\b(lettuce|tomato|onion|spring onion|green onion|scallion|cucumber|carrot|celery|spinach|kangkong|pechay|bok choy|cabbage|bell pepper|capsicum|eggplant|zucchini|squash|potato|sweet potato|corn(?! starch| kernels canned)$|mushroom(?! canned| dried)$|basil|parsley|cilantro|coriander leaf|dill|mint|thyme(?! dried)$|rosemary(?! dried)$|oregano(?! dried)$|ginger|lemongrass|pandan|bay leaf(?! dried)$|lemon|lime|calamansi|mango|banana|avocado|strawberr|blueberr|apple|orange|grapes|cherry|fruit|vegetable|herbs|fresh)\b/i,
+  // Dairy
+  dairy: /\b(milk(?! powder)$|fresh milk|evap|evaporated|condensed|butter|cream(?! of tartar)$|all.purpose cream|whipping cream|sour cream|cheese|mozzarella|parmesan|cheddar|feta|brie|goat cheese|cream cheese|yogurt|cottage cheese|margarine)\b/i,
+  // Dry goods — starches, grains, baked goods
+  dry: /\b(flour|sugar(?! cane)$|brown sugar|white sugar|powdered sugar|muscovado|starch|cornstarch|potato starch|tapioca|breadcrumb|pasta|spaghetti|penne|linguini|macaroni|noodle|rice(?! vinegar)$|oat|bread|pandesal|loaf|bun|wrapper|crepe|tortilla|roll)\b/i,
+  // Eggs — separate from meat
+  eggs: /\b(egg)\b/i,
+};
+
+// Fine-grained pantry category (for display matching to sheet)
+const PANTRY_CATEGORY_MAP = [
+  { cat:'Meat & Poultry', pattern:/\b(chicken|pork|beef|lamb|liempo|lechon|duck|turkey)\b/i },
+  { cat:'Seafood', pattern:/\b(fish|shrimp|prawn|crab|squid|tuna|salmon|mussels|kani|crabstick|tilapia|bangus|clam|oyster(?! sauce)$)\b/i },
+  { cat:'Processed Meats', pattern:/\b(bacon|ham|hotdog|sausage|chorizo|spam|luncheon meat|corned beef)\b/i },
+  { cat:'Dairy', pattern:/\b(milk|evap|condensed|butter|cream(?! of tartar)$|all.purpose cream|whipping cream|sour cream|cheese|mozzarella|parmesan|cheddar|feta|brie|goat cheese|cream cheese|yogurt|cottage|margarine)\b/i },
+  { cat:'Eggs', pattern:/\b(egg)\b/i },
+  { cat:'Produce', pattern:/\b(lettuce|tomato|onion|spring onion|scallion|cucumber|carrot|celery|spinach|kangkong|pechay|bok choy|cabbage|bell pepper|eggplant|zucchini|squash|potato|sweet potato|mushroom(?! canned| dried)$|ginger|lemongrass|pandan|lemon|lime|calamansi|mango|banana|avocado|fresh herb|basil|parsley|cilantro|dill|mint)\b/i },
+  { cat:'Canned Goods', pattern:/\b(canned|pineapple slices|pineapple tidbits|spam|tuna can|red beans|white beans|garbanzos|chickpeas canned|anchovies|liver spread|diced tomatoes|peeled tomatoes|corn kernels|mushroom can|black beans)\b/i },
+  { cat:'Bottled Goods', pattern:/\b(cornichon|pickle|capers|olives|jalapen|atchara|tahini|sundried tomato|truffle sauce|pesto|char siu|caperberr|provencale|horseradish|bolognese)\b/i },
+  { cat:'Condiments', pattern:/\b(ketchup|mayo|mayonnaise|mustard|mang tomas|balsamic|wasabi|bbq sauce|sriracha|habanero|bagoong|ginamos|steak sauce|banana ketchup)\b/i },
+  { cat:'Oils', pattern:/\b(oil)\b/i },
+  { cat:'Seasonings', pattern:/\b(soy sauce|fish sauce|oyster sauce|worcestershire|liquid seasoning|mirin|vinegar|liquid smoke|dark soy|japanese soy|chinese cooking wine|bango)\b/i },
+  { cat:'Cooking Mixes', pattern:/\b(coconut milk|tomato sauce|tomato paste|gochujang|miso|tom yum|tamarind paste|japanese curry|kaldereta|kare.kare|sinigang|shrimp bisque|pumpkin soup|palabok)\b/i },
+  { cat:'Cooking Spices', pattern:/\b(pepper|paprika|cumin|turmeric|curry powder|chili flakes|cayenne|annatto|garlic powder|garlic bits|crispy garlic|garlic flakes|fried garlic|star anise|cloves|bay leaves|oregano|rosemary|thyme|italian seasoning|parsley flakes|five spice|taco seasoning|cajun|togarashi|furikake|nori|bonito|wakame|shiitake|fennel|cardamom|coriander seeds|kasubha|kaffir|salt|rock salt|sea salt|iodized salt|pink salt)\b/i },
+  { cat:'Sugars & Flours', pattern:/\b(flour|sugar|starch|cornmeal|semolina|breadcrumb|yeast|baking powder|baking soda|cream of tartar|cocoa powder|matcha|cassava|tempura flour|instant whipped cream|mashed potato|rice flour|almond flour|bread flour|whole wheat|potato starch|tapioca starch)\b/i },
+  { cat:'Noodles & Grains', pattern:/\b(rice|pasta|spaghetti|penne|linguini|macaroni|noodle|bihon|misua|japchae|ramen|udon|vermicelli|canton|oat|quinoa|basmati)\b/i },
+  { cat:'Nuts & Seeds', pattern:/\b(almond|walnut|cashew|peanut|pistachio|pine nut|pecan|hazelnut|macadamia|chickpeas|monggo|soybean|sesame seed|flax|chia|pumpkin seed|sunflower seed|apricot dried|raisins|craisins|coconut flakes|desiccated coconut|dates|pinipig)\b/i },
+  { cat:'Chocolates', pattern:/\b(chocolate|cocoa|cacao)\b/i },
+  { cat:'Syrups & Jams', pattern:/\b(honey|maple syrup|corn syrup|pancake syrup|peanut butter|biscoff|marmalade|jam|kaong|nata de coco|maraschino|ube halaya|yema|frosting|langka|cranberry sauce)\b/i },
+  { cat:'Baking Mixes', pattern:/\b(gulaman|gelatin|tapioca pearl|cake mix|cookie mix|puto mix|hot cake mix)\b/i },
+  { cat:'Bread', pattern:/\b(bread|pandesal|bun|loaf|sandwich bread|pita|tortilla|rice paper|wrapper|puff pastry|broas|otap)\b/i },
+  { cat:'Frozen', pattern:/\b(frozen|fries|edamame|green peas frozen)\b/i },
 ];
 
 function guessCategory(name) {
-  for (const rule of CATEGORY_RULES) {
-    if (rule.pattern.test(name)) return rule.cat;
-  }
+  const n = name.toLowerCase();
+  // Eggs first — common ambiguity
+  if (/\begg\b/.test(n)) return 'dairy';
+  if (CATEGORY_MAP.meat.test(n)) return 'meat';
+  if (CATEGORY_MAP.produce.test(n)) return 'produce';
+  if (CATEGORY_MAP.dairy.test(n)) return 'dairy';
+  if (CATEGORY_MAP.dry.test(n)) return 'dry';
+  // Seasoning is broad — check last
+  if (/\b(oil|sauce|vinegar|soy|ketchup|mayo|mayonnaise|mustard|salt|pepper(?! fresh| bell)$|spice|seasoning|paprika|cumin|turmeric|curry|chili|sriracha|hoisin|oyster sauce|fish sauce|mirin|worcestershire|pesto|tahini|gochujang|miso|bagoong)\b/i.test(n)) return 'seasoning';
   return 'other';
+}
+
+function getPantryCategory(name) {
+  const n = name.toLowerCase();
+  for (const rule of PANTRY_CATEGORY_MAP) {
+    if (rule.pattern.test(n)) return rule.cat;
+  }
+  return 'General';
 }
 
 // ============================================================
@@ -604,6 +651,7 @@ let recipes = [];
 let masterList = [];
 let brands = [];
 let usingGSheets = false;
+const GSHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?output=csv';
 
 // ============================================================
 // BRAND TAGS
@@ -624,49 +672,103 @@ function renderBrandTags() {
 }
 
 // ============================================================
-// GOOGLE SHEETS SYNC
+// GOOGLE SHEETS SYNC — auto-loads on page open
 // ============================================================
-async function loadGSheetsInventory() {
-  const url = document.getElementById('gsheetsUrl').value.trim();
-  if (!url) return;
+async function loadGSheetsInventory(manualUrl) {
+  const url = manualUrl || document.getElementById('gsheetsUrl').value.trim() || GSHEETS_URL;
   const st = document.getElementById('gsStatus');
   st.className = 'gs-status gs-idle'; st.textContent = '⬤ Connecting...';
   try {
-    let csvUrl = url.includes('/pub') ? url.replace(/\/pub[^?]*/, '/pub') + '?output=csv' : url;
-    if (!csvUrl.includes('output=csv')) csvUrl += (csvUrl.includes('?') ? '&' : '?') + 'output=csv';
+    // Ensure correct CSV export format
+    let csvUrl = url;
+    if (csvUrl.includes('/edit')) {
+      csvUrl = csvUrl.replace(/\/edit.*$/, '/pub?output=csv');
+    }
+    if (!csvUrl.includes('output=csv')) {
+      csvUrl += (csvUrl.includes('?') ? '&' : '?') + 'output=csv';
+    }
+
     const resp = await fetch(csvUrl);
-    if (!resp.ok) throw new Error('Fetch failed');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const text = await resp.text();
+
+    // Sanity check — real CSV starts with a letter, not < or {
+    if (text.trim().startsWith('<') || text.trim().startsWith('{') || text.trim().startsWith('/')) {
+      throw new Error('Got HTML/JS instead of CSV — check publish URL');
+    }
+
     const parsed = parseCSVInventory(text);
     if (parsed.length > 0) {
       INVENTORY = parsed; usingGSheets = true;
       st.className = 'gs-status gs-ok';
-      st.textContent = `⬤ Synced — ${parsed.length} items loaded`;
+      st.textContent = `⬤ Live — ${parsed.length} items from your sheet`;
+      if (document.getElementById('gsheetsUrl').value === '') {
+        document.getElementById('gsheetsUrl').value = GSHEETS_URL;
+      }
       updateMasterList();
-    } else throw new Error('No data');
+      if (document.getElementById('tab-inventory').style.display !== 'none') renderInventoryBrowser();
+    } else throw new Error('No data rows found');
   } catch(e) {
+    console.warn('GSheets sync failed:', e.message);
     st.className = 'gs-status gs-err';
-    st.textContent = '⬤ Could not connect — using built-in inventory';
+    st.textContent = `⬤ Sync failed — using built-in inventory`;
   }
 }
 
 function parseCSVInventory(text) {
-  const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
+  // Handle \r\n and \r line endings
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+
+  // Parse CSV properly — handle quoted fields with commas inside
+  function parseLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current.trim()); current = '';
+      } else current += ch;
+    }
+    result.push(current.trim());
+    return result;
+  }
+
+  const rows = lines.filter(l => l.trim()).map(parseLine);
   if (rows.length < 2) return [];
-  const h = rows[0].map(x => x.toLowerCase());
-  const ni = h.findIndex(x => x.includes('item') || x.includes('name'));
+
+  const h = rows[0].map(x => x.toLowerCase().trim());
+  const ni = h.findIndex(x => x.includes('item name') || x === 'item' || x === 'name' || x.includes('item'));
   const ci = h.findIndex(x => x.includes('category') || x.includes('cat'));
   const si = h.findIndex(x => x.includes('stock'));
   const ui = h.findIndex(x => x.includes('unit'));
   const wi = h.findIndex(x => x.includes('weight'));
   const sti = h.findIndex(x => x.includes('status'));
-  if (ni < 0) return [];
-  return rows.slice(1).filter(r => r[ni]).map(r => ({
-    name: r[ni]||'', cat: ci>=0?r[ci]:'General',
-    stock: parseFloat(r[si])||0, unit: ui>=0?r[ui]:'',
-    weight: wi>=0?r[wi]:'', status: sti>=0?r[sti]:'In stock',
-  }));
+
+  if (ni < 0) { console.warn('Could not find name column. Headers:', h); return []; }
+
+  return rows.slice(1)
+    .filter(r => r[ni] && r[ni].trim() && r[ni].trim() !== '-')
+    .map(r => {
+      const name = r[ni]?.trim() || '';
+      // Use sheet category if available, otherwise derive from our pantry map
+      const sheetCat = ci >= 0 ? r[ci]?.trim() : '';
+      const cat = sheetCat || getPantryCategory(name);
+      return {
+        name, cat,
+        stock: parseFloat(r[si]) || 0,
+        unit: ui >= 0 ? r[ui]?.trim() : '',
+        weight: wi >= 0 ? r[wi]?.trim() : '',
+        status: sti >= 0 ? r[sti]?.trim() : 'In stock',
+      };
+    });
 }
+
+// Auto-load inventory on page start
+window.addEventListener('load', () => loadGSheetsInventory(GSHEETS_URL));
 
 // ============================================================
 // PARSE RECIPE TEXT (no API — pure text parsing)
