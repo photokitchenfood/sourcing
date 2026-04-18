@@ -250,12 +250,7 @@ textarea.recipe-text::placeholder { color:var(--muted); line-height:1.8; }
 <div class="project-bar">
   <label>Project Name</label>
   <input type="text" id="projectName" placeholder="e.g. Lady's Choice Egg Salad Campaign" autocomplete="off">
-  <div class="bar-divider"></div>
-  <label>Brand / Sponsored</label>
-  <div class="brand-input-wrap">
-    <div class="brand-tags" id="brandTags"></div>
-    <input class="brand-add-input" id="brandInput" placeholder="+ Add brand, press Enter" onkeydown="handleBrandKey(event)">
-  </div>
+
 </div>
 
 <!-- GOOGLE SHEETS SYNC BAR -->
@@ -305,9 +300,9 @@ INGREDIENTS:
   <div class="scaling-grid">
     <div class="scaling-grid-title">⚖️ Scaling Settings <span style="font-weight:300;font-size:11px;color:var(--muted)">— leave optional fields blank to default to Takes</span></div>
     <div class="scaling-rows">
-      <div class="scale-field">
+      <div class="scale-field" style="grid-column:1/-1">
         <label>Number of Takes <span style="color:var(--accent)">*</span></label>
-        <input type="number" id="numTakes" value="5" min="1" max="20">
+        <input type="number" id="numTakes" min="1" max="20" placeholder="Photo: min. 3 takes · Video: min. 5 takes">
       </div>
       <div class="scale-field">
         <label>Meat Buffer <span class="optional-tag">optional</span></label>
@@ -316,10 +311,6 @@ INGREDIENTS:
       <div class="scale-field">
         <label>Fresh Produce Buffer <span class="optional-tag">optional</span></label>
         <input type="number" id="produceBuffer" placeholder="e.g. 4" min="1" max="20">
-      </div>
-      <div class="scale-field">
-        <label>Seasoning Buffer <span class="optional-tag">optional</span></label>
-        <input type="number" id="seasoningBuffer" placeholder="e.g. 6" min="1" max="20">
       </div>
     </div>
   </div>
@@ -349,6 +340,7 @@ INGREDIENTS:
   <div class="tab-row">
     <div class="tab active" id="tab-btn-master" onclick="switchTab('master',this)">① Master List</div>
     <div class="tab" id="tab-btn-buy" onclick="switchTab('buy',this)">② Buy List</div>
+    <div class="tab" id="tab-btn-client" onclick="switchTab('client',this)">Client Provided</div>
     <div class="tab" id="tab-btn-pantry" onclick="switchTab('pantry',this)">Pantry</div>
   </div>
 
@@ -393,6 +385,13 @@ INGREDIENTS:
     <div class="export-actions" id="exportActions" style="display:none">
       <button class="btn btn-primary" onclick="exportCSV()">↓ Export CSV</button>
       <button class="btn btn-ghost" onclick="copyList()">Copy as Text</button>
+    </div>
+  </div>
+
+  <!-- CLIENT PROVIDED -->
+  <div id="tab-client" style="display:none">
+    <div id="clientProvidedList">
+      <div class="empty-state"><div class="big">⭐</div><p>No sponsored items yet.<br>Toggle ⭐ on any ingredient in the recipe card<br>to mark it as client-provided.</p></div>
     </div>
   </div>
 
@@ -671,27 +670,9 @@ function getPantryCategory(name) { const s = guessSubcat(name); return s === 'Un
 // ============================================================
 let recipes = [];
 let masterList = [];
-let brands = [];
 let usingGSheets = false;
 const GSHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?output=csv';
 
-// ============================================================
-// BRAND TAGS
-// ============================================================
-function handleBrandKey(e) {
-  if (e.key === 'Enter' || e.key === ',') {
-    e.preventDefault();
-    const val = e.target.value.trim().replace(/,/g,'');
-    if (val && !brands.includes(val)) { brands.push(val); renderBrandTags(); }
-    e.target.value = '';
-  }
-}
-function removeBrand(b) { brands = brands.filter(x => x !== b); renderBrandTags(); }
-function renderBrandTags() {
-  document.getElementById('brandTags').innerHTML = brands.map(b =>
-    `<div class="brand-tag">${b}<button onclick="removeBrand('${b.replace(/'/g,"\\'")}')">×</button></div>`
-  ).join('');
-}
 
 // ============================================================
 // GOOGLE SHEETS SYNC — auto-loads on page open
@@ -816,7 +797,6 @@ function parseRecipe() {
   const takes = parseInt(document.getElementById('numTakes').value) || 5;
   const meatBuf = parseInt(document.getElementById('meatBuffer').value) || takes;
   const produceBuf = parseInt(document.getElementById('produceBuffer').value) || takes;
-  const seasoningBuf = parseInt(document.getElementById('seasoningBuffer').value) || takes;
 
   // Extract dish name
   let dishName = 'Untitled Recipe';
@@ -865,8 +845,7 @@ function parseRecipe() {
     const multiplier = cat === 'meat' ? meatBuf : cat === 'produce' ? produceBuf : cat === 'seasoning' ? seasoningBuf : takes;
     const scaledQty = Math.round(qty * multiplier * 10) / 10;
 
-    // Check if sponsored
-    const isSponsored = brands.some(b => name.toLowerCase().includes(b.toLowerCase()) || clean.toLowerCase().includes(b.toLowerCase()));
+    const isSponsored = false; // set manually via ⭐ toggle on recipe card
 
     // Check if fuzzy
     const fuzzyHint = FUZZY_HINTS.find(h => h.pattern.test(name));
@@ -876,12 +855,12 @@ function parseRecipe() {
       scaledQty, scaledUnit: unit,
       category: cat, multiplier,
       isFuzzy: !!fuzzyHint, fuzzyReason: fuzzyHint?.note || '',
-      isSponsored, sponsoredReason: isSponsored ? `Matches brand: ${brands.find(b => name.toLowerCase().includes(b.toLowerCase()) || clean.toLowerCase().includes(b.toLowerCase()))}` : '',
+      isSponsored, sponsoredReason: '',
     };
   });
 
   const id = Date.now();
-  const recipe = { id, name: dishName, takes, meatBuf, produceBuf, seasoningBuf, ingredients };
+  const recipe = { id, name: dishName, takes, meatBuf, produceBuf, ingredients };
   recipes.push(recipe);
 
   renderRecipeCard(recipe);
@@ -918,10 +897,10 @@ function catBadge(cat) {
 function renderRecipeCard(recipe) {
   const card = document.getElementById('recipeCard');
   card.style.display = 'block';
-  const scales = recipe.meatBuf !== recipe.takes || recipe.produceBuf !== recipe.takes || recipe.seasoningBuf !== recipe.takes;
+  const scales = recipe.meatBuf !== recipe.takes || recipe.produceBuf !== recipe.takes;
   card.innerHTML = `<div class="recipe-card">
     <h3>${recipe.name}</h3>
-    <div class="recipe-meta">${recipe.takes} TAKES${scales?` · MEAT×${recipe.meatBuf} PRODUCE×${recipe.produceBuf} SEASONING×${recipe.seasoningBuf}`:''} · ${recipe.ingredients.length} INGREDIENTS</div>
+    <div class="recipe-meta">${recipe.takes} TAKES${scales?` · MEAT×${recipe.meatBuf} PRODUCE×${recipe.produceBuf}`:''} · ${recipe.ingredients.length} INGREDIENTS</div>
     <table class="ing-table">
       <thead><tr><th>Ingredient</th><th>Cat.</th><th>Original</th><th>Scaled</th><th></th></tr></thead>
       <tbody>${recipe.ingredients.map((ing,i) => ingRow(recipe.id,i,ing)).join('')}</tbody>
@@ -1020,7 +999,7 @@ function renderRecipesList() {
   sb.style.display='block';
   count.textContent = `(${recipes.length})`;
   list.innerHTML = recipes.map(r=>`<div class="recipe-pill" onclick="renderRecipeCard(recipes.find(x=>x.id===${r.id}))">
-    <span>${r.name}</span><span class="pill-meta">${r.ingredients.length} items · ×${r.takes}</span>
+    <span>${r.name}</span><span class="pill-meta">${r.ingredients.length} items · ${r.takes} takes</span>
   </div>`).join('');
 }
 
@@ -1325,6 +1304,39 @@ function copyList() {
 // ============================================================
 // INVENTORY BROWSER
 // ============================================================
+function renderClientProvided() {
+  const container = document.getElementById('clientProvidedList');
+  // Collect all sponsored ingredients across all recipes
+  const allSponsored = [];
+  for (const recipe of recipes) {
+    for (const ing of recipe.ingredients) {
+      if (ing.isSponsored) {
+        allSponsored.push({ ...ing, recipeName: recipe.name });
+      }
+    }
+  }
+  if (allSponsored.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="big">⭐</div><p>No sponsored items yet.<br>Toggle ⭐ on any ingredient in the recipe card<br>to mark it as client-provided.</p></div>`;
+    return;
+  }
+  // Group by recipe
+  const byRecipe = {};
+  for (const ing of allSponsored) {
+    if (!byRecipe[ing.recipeName]) byRecipe[ing.recipeName] = [];
+    byRecipe[ing.recipeName].push(ing);
+  }
+  container.innerHTML = `
+    <div class="alert alert-purple" style="margin-bottom:12px">These items are provided by the client. No sourcing needed.</div>
+    ${Object.entries(byRecipe).map(([recipe, ings]) => `
+      <div class="buy-parent-header" style="background:var(--purple)">${recipe}</div>
+      ${ings.map(ing => `
+        <div class="final-item">
+          <span class="fi-name">⭐ ${ing.name}${ing.notes ? ` <span style="color:var(--muted);font-size:10px">${ing.notes}</span>` : ''}</span>
+          <span class="fi-qty">${ing.scaledQty} ${ing.scaledUnit}</span>
+        </div>`).join('')}
+    `).join('')}`;
+}
+
 function renderInventoryBrowser(q='',catF='') {
   const cats=[...new Set(INVENTORY.map(i=>i.cat))];
   document.getElementById('catFilters').innerHTML=
@@ -1352,13 +1364,14 @@ function filterInventory(){renderInventoryBrowser(document.getElementById('inven
 // TABS & UTILS
 // ============================================================
 function switchTab(tab,el){
-  ['master','buy','pantry'].forEach(t=>{
+  ['master','buy','client','pantry'].forEach(t=>{
     const el2=document.getElementById(`tab-${t}`);
     if(el2) el2.style.display=t===tab?'block':'none';
   });
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   if(tab==='pantry') renderInventoryBrowser();
+  if(tab==='client') renderClientProvided();
 }
 
 document.getElementById('projectName').addEventListener('input',e=>{
