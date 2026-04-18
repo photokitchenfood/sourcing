@@ -670,6 +670,7 @@ function getPantryCategory(name) { const s = guessSubcat(name); return s === 'Un
 // ============================================================
 let recipes = [];
 let masterList = [];
+let masterListGenerated = false;
 let usingGSheets = false;
 const GSHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?output=csv';
 
@@ -1008,7 +1009,11 @@ function renderRecipesList() {
 // ============================================================
 function markListsDirty() {
   const btn = document.getElementById('generateMasterBtn');
-  if (btn) { btn.classList.add('btn-dirty'); btn.textContent = '⚡ Regenerate Master List'; }
+  if (btn) {
+    btn.classList.add('btn-dirty');
+    // Only say "Regenerate" if master list was already built at least once
+    btn.textContent = masterListGenerated ? '⚡ Regenerate Master List' : '⚡ Generate Master List';
+  }
   const notice = document.getElementById('masterDirtyNotice');
   if (notice) notice.style.display = 'flex';
 }
@@ -1043,6 +1048,7 @@ function rebuildMasterList() {
   }
   masterList = Object.values(map);
   updateMasterList();
+  masterListGenerated = true;
   // Clear master dirty state
   const masterBtn = document.getElementById('generateMasterBtn');
   if (masterBtn) { masterBtn.classList.remove('btn-dirty'); masterBtn.textContent = '✦ Generate Master List →'; }
@@ -1118,7 +1124,7 @@ function updateMasterList() {
   const buyItems=[];
 
   container.innerHTML=masterList.map((ml,idx)=>{
-    if(ml.isSponsored) sp++; // won't appear here — tracked for reference only
+    // sponsored items excluded from masterList — counted separately below
     const inv=matchInventory(ml.name);
     let autoStatus=!inv?'buy':inv.status==='Re-purchase needed'||inv.stock===0?'buy':inv.stock<=1?'low':'ok';
     const status=ml.manualStatus||(ml.isSponsored?'sponsored':autoStatus);
@@ -1172,7 +1178,10 @@ function updateMasterList() {
   document.getElementById('countOk').textContent=ok;
   document.getElementById('countLow').textContent=low;
   document.getElementById('countBuy').textContent=buy;
-  document.getElementById('countSp').textContent=sp;
+  // Count sponsored from recipe cards directly
+  let spCount = 0;
+  for (const r of recipes) spCount += r.ingredients.filter(i => i.isSponsored).length;
+  document.getElementById('countSp').textContent=spCount;
   // Buy list only updates when team hits Generate Buy List
 }
 
@@ -1337,25 +1346,69 @@ function renderClientProvided() {
     `).join('')}`;
 }
 
-function renderInventoryBrowser(q='',catF='') {
-  const cats=[...new Set(INVENTORY.map(i=>i.cat))];
-  document.getElementById('catFilters').innerHTML=
-    `<div class="filter-chip ${!catF?'active':''}" onclick="renderInventoryBrowser('','')">All</div>`+
-    cats.map(c=>`<div class="filter-chip ${catF===c?'active':''}" onclick="renderInventoryBrowser('${q}','${c}')">${c}</div>`).join('');
-  const qL=q.toLowerCase();
-  const items=INVENTORY.filter(i=>(!qL||i.name.toLowerCase().includes(qL)||i.cat.toLowerCase().includes(qL))&&(!catF||i.cat===catF));
-  const grouped={};
-  items.forEach(i=>{if(!grouped[i.cat])grouped[i.cat]=[];grouped[i.cat].push(i);});
-  document.getElementById('inventoryBrowser').innerHTML=Object.entries(grouped).map(([cat,citems])=>`
-    <div style="margin-bottom:14px">
-      <div class="section-label" style="margin-bottom:5px">${cat}</div>
-      ${citems.map(i=>`<div class="master-row-main ${i.stock>1?'matched':i.stock>0?'partial':'unmatched'}" style="margin-bottom:3px">
-        <div><div class="item-name">${i.name}</div><div class="item-need">${i.unit}${i.weight?' · '+i.weight:''}</div></div>
-        <div class="stock-info">${i.stock} ${i.unit}</div>
-        <span class="status-badge ${i.stock>1?'badge-ok':i.stock>0?'badge-low':'badge-buy'}">${i.stock>1?'In Stock':i.stock>0?'Low':'Buy'}</span>
-        <div></div>
-      </div>`).join('')}
-    </div>`).join('');
+function renderInventoryBrowser(q='', mainFilter='', subFilter='') {
+  const qL = q.toLowerCase();
+
+  // Build filter UI — two rows: Main Categories + Subcategories
+  const mainCats = Object.keys(PARENT_TABS);
+
+  // Which subcats to show: all if no main filter, or just the ones under selected main
+  const activeSubs = mainFilter ? (PARENT_TABS[mainFilter] || []) : ALL_SUBCATS;
+
+  document.getElementById('catFilters').innerHTML = `
+    <div style="margin-bottom:6px">
+      <div class="section-label" style="margin-bottom:4px">Main Categories</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <div class="filter-chip ${!mainFilter?'active':''}" onclick="renderInventoryBrowser('${q}','','')">All</div>
+        ${mainCats.map(c=>`<div class="filter-chip ${mainFilter===c?'active':''}" onclick="renderInventoryBrowser('${q}','${c}','')">${c}</div>`).join('')}
+      </div>
+    </div>
+    <div>
+      <div class="section-label" style="margin-bottom:4px">Subcategories</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <div class="filter-chip ${!subFilter?'active':''}" onclick="renderInventoryBrowser('${q}','${mainFilter}','')">All</div>
+        ${activeSubs.filter(s=>s!=='Uncategorized').map(s=>`<div class="filter-chip ${subFilter===s?'active':''}" onclick="renderInventoryBrowser('${q}','${mainFilter}','${s}')">${s}</div>`).join('')}
+      </div>
+    </div>`;
+
+  // Filter inventory items
+  const items = INVENTORY.filter(i => {
+    const nameMatch = !qL || i.name.toLowerCase().includes(qL) || i.cat.toLowerCase().includes(qL);
+    const parentMatch = !mainFilter || getParentTab(i.cat) === mainFilter;
+    const subMatch = !subFilter || i.cat === subFilter;
+    return nameMatch && parentMatch && subMatch;
+  });
+
+  if (items.length === 0) {
+    document.getElementById('inventoryBrowser').innerHTML = `<div class="empty-state"><p>No items found.</p></div>`;
+    return;
+  }
+
+  // Group by parent tab → subcategory
+  const grouped = {};
+  for (const i of items) {
+    const parent = getParentTab(i.cat);
+    if (!grouped[parent]) grouped[parent] = {};
+    if (!grouped[parent][i.cat]) grouped[parent][i.cat] = [];
+    grouped[parent][i.cat].push(i);
+  }
+
+  const parentOrder = ['Fresh Produce','Frozen and Chilled Items','Dry Goods: Cooking Items','Dry Goods: Pastry Items','Uncategorized'];
+  document.getElementById('inventoryBrowser').innerHTML = parentOrder
+    .filter(p => grouped[p])
+    .map(parent => `
+      <div style="margin-bottom:16px">
+        <div class="buy-parent-header">${parent}</div>
+        ${Object.entries(grouped[parent]).map(([sub, sitems]) => `
+          <div class="buy-subcat-header">${sub}</div>
+          ${sitems.map(i=>`<div class="master-row-main ${i.stock>1?'matched':i.stock>0?'partial':'unmatched'}" style="margin-bottom:3px">
+            <div><div class="item-name">${i.name}</div><div class="item-need">${i.unit}${i.weight?' · '+i.weight:''}</div></div>
+            <div class="stock-info">${i.stock} ${i.unit}</div>
+            <span class="status-badge ${i.stock>1?'badge-ok':i.stock>0?'badge-low':'badge-buy'}">${i.stock>1?'In Stock':i.stock>0?'Low':'Buy'}</span>
+            <div></div>
+          </div>`).join('')}
+        `).join('')}
+      </div>`).join('');
 }
 
 function filterInventory(){renderInventoryBrowser(document.getElementById('inventorySearch').value);}
