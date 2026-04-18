@@ -345,39 +345,50 @@ INGREDIENTS:
   <h2>Sourcing &amp; Inventory</h2>
   <p style="font-size:11px;color:var(--muted)" id="rightSubtitle">Cross-checked against your pantry</p>
 
-  <!-- DIRTY NOTICE -->
-  <div id="listDirtyNotice" style="display:none;background:var(--gold-light);border:1px solid #EDD98A;border-radius:8px;padding:9px 12px;font-size:11px;color:#6B5010;margin-bottom:8px;align-items:center;gap:8px">
-    <span>⚡</span>
-    <span>Recipe cards were updated. Hit <strong>Generate</strong> to refresh the Master & Buy List.</span>
-  </div>
-  <button id="generateBtn" class="btn btn-primary" onclick="rebuildMasterList()" style="width:100%;margin-bottom:10px;font-size:13px;padding:11px">
-    ✦ Generate Master &amp; Buy List
-  </button>
-
+  <!-- STAGE TABS -->
   <div class="tab-row">
-    <div class="tab active" onclick="switchTab('sourcing',this)">Master List</div>
-    <div class="tab" onclick="switchTab('final',this)">Buy List</div>
-    <div class="tab" onclick="switchTab('inventory',this)">Pantry</div>
+    <div class="tab active" id="tab-btn-master" onclick="switchTab('master',this)">① Master List</div>
+    <div class="tab" id="tab-btn-buy" onclick="switchTab('buy',this)">② Buy List</div>
+    <div class="tab" id="tab-btn-pantry" onclick="switchTab('pantry',this)">Pantry</div>
   </div>
 
-  <!-- SOURCING TAB -->
-  <div id="tab-sourcing">
+  <!-- STAGE 1: MASTER LIST -->
+  <div id="tab-master">
+    <!-- Generate Master List button -->
+    <div id="masterDirtyNotice" style="display:none;background:var(--gold-light);border:1px solid #EDD98A;border-radius:8px;padding:8px 12px;font-size:11px;color:#6B5010;margin-bottom:8px;align-items:center;gap:8px">
+      <span>⚡</span><span>Recipe cards updated — regenerate to reflect changes.</span>
+    </div>
+    <button id="generateMasterBtn" class="btn btn-primary" onclick="rebuildMasterList()" style="width:100%;margin-bottom:10px;font-size:13px;padding:11px">
+      ✦ Generate Master List →
+    </button>
+
+    <!-- Summary tiles -->
     <div id="summaryBar" style="display:none" class="summary-bar">
       <div class="summary-tile tile-ok"><span class="tile-num" id="countOk">0</span><span class="tile-label">In Stock</span></div>
       <div class="summary-tile tile-low"><span class="tile-num" id="countLow">0</span><span class="tile-label">Low / Check</span></div>
       <div class="summary-tile tile-buy"><span class="tile-num" id="countBuy">0</span><span class="tile-label">Need to Buy</span></div>
-      <div class="summary-tile tile-sp"><span class="tile-num" id="countSp">0</span><span class="tile-label">Sponsored</span></div>
+      <div class="summary-tile tile-sp"><span class="tile-num" id="countSp">0</span><span class="tile-label">Client Provided</span></div>
     </div>
     <div id="combineSuggestions"></div>
     <div id="masterSourcingList">
-      <div class="empty-state"><div class="big">🥕</div><p>Paste a recipe on the left and hit Parse.<br>Each ingredient will be checked<br>against your pantry inventory.</p></div>
+      <div class="empty-state"><div class="big">🥕</div><p>Parse a recipe on the left, review the<br>recipe card, then hit Generate Master List.</p></div>
+    </div>
+
+    <!-- Generate Buy List button — shown after master list is built -->
+    <div id="generateBuyWrap" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <div id="buyDirtyNotice" style="display:none;background:var(--gold-light);border:1px solid #EDD98A;border-radius:8px;padding:8px 12px;font-size:11px;color:#6B5010;margin-bottom:8px;align-items:center;gap:8px">
+        <span>⚡</span><span>Master list was edited — regenerate the Buy List to reflect changes.</span>
+      </div>
+      <button id="generateBuyBtn" class="btn btn-primary" onclick="generateBuyList()" style="width:100%;font-size:13px;padding:11px;background:var(--green)">
+        ✦ Generate Buy List →
+      </button>
     </div>
   </div>
 
-  <!-- FINAL BUY TAB -->
-  <div id="tab-final" style="display:none">
+  <!-- STAGE 2: BUY LIST -->
+  <div id="tab-buy" style="display:none">
     <div id="finalBuyList">
-      <div class="empty-state"><div class="big">🛒</div><p>No recipes yet.<br>Your shopping list will appear here.</p></div>
+      <div class="empty-state"><div class="big">🛒</div><p>Generate the Master List first,<br>review it, then hit Generate Buy List.</p></div>
     </div>
     <div class="export-actions" id="exportActions" style="display:none">
       <button class="btn btn-primary" onclick="exportCSV()">↓ Export CSV</button>
@@ -385,8 +396,8 @@ INGREDIENTS:
     </div>
   </div>
 
-  <!-- INVENTORY TAB -->
-  <div id="tab-inventory" style="display:none">
+  <!-- PANTRY -->
+  <div id="tab-pantry" style="display:none">
     <div class="inventory-search">
       <span class="search-icon">🔍</span>
       <input type="text" id="inventorySearch" placeholder="Search pantry..." oninput="filterInventory()">
@@ -611,7 +622,7 @@ function getParentTab(subcat) {
   for (const [parent, subs] of Object.entries(PARENT_TABS)) {
     if (subs.includes(subcat)) return parent;
   }
-  return 'Uncategorized';
+  return 'Fresh Produce'; // unrecognized subcats default to Fresh Produce
 }
 
 const SUBCAT_RULES = [
@@ -645,14 +656,14 @@ function guessSubcat(name) {
   for (const rule of SUBCAT_RULES) {
     if (rule.pat.test(n)) return rule.sub;
   }
-  return 'Uncategorized';
+  return 'Fresh Produce'; // default — if not matched, assume it's a fresh item not in pantry
 }
 function guessCategory(name) { return guessSubcat(name); }
 function guessMainCat(name) {
   const sub = guessSubcat(name);
   return getParentTab(sub);
 }
-function getPantryCategory(name) { return guessSubcat(name); }
+function getPantryCategory(name) { const s = guessSubcat(name); return s === 'Uncategorized' ? 'Fresh Produce' : s; }
 
 
 // ============================================================
@@ -915,7 +926,7 @@ function ingRow(rid,i,ing) {
     <td>${ing.name}${ing.notes?`<span style="font-size:10px;color:var(--muted);display:block">${ing.notes}</span>`:''}
       ${ing.isFuzzy?`<div class="fuzzy-warning">⚠ ${ing.fuzzyReason}</div>`:''}
     </td>
-    <td>${catBadge(ing.category)}${ing.isSponsored?'<span class="cat-badge cat-sponsored" style="margin-left:3px">BRAND</span>':''}</td>
+    <td>${catBadge(ing.category)}${ing.isSponsored?'<span class="cat-badge cat-sponsored" style="margin-left:3px" title="Client provides this — excluded from sourcing">BRAND ✓</span>':''}</td>
     <td class="qty-col qty-orig">${ing.origQty} ${ing.origUnit}</td>
     <td class="qty-col qty-scaled">${ing.scaledQty} ${ing.scaledUnit}<br><span style="font-size:9px;color:var(--muted)">×${ing.multiplier}</span></td>
     <td><div class="row-actions">
@@ -967,7 +978,7 @@ function deleteIng(rid,i) {
 
 function addManualIng(rid) {
   const r = recipes.find(x=>x.id===rid); if(!r) return;
-  r.ingredients.push({name:'New Ingredient',origQty:1,origUnit:'pcs',scaledQty:1,scaledUnit:'pcs',category:'Uncategorized',multiplier:r.takes,isFuzzy:false,isSponsored:false,notes:''});
+  r.ingredients.push({name:'New Ingredient',origQty:1,origUnit:'pcs',scaledQty:1,scaledUnit:'pcs',category:'Fresh Produce',multiplier:r.takes,isFuzzy:false,isSponsored:false,notes:''});
   renderRecipeCard(r);
   setTimeout(()=>editIngRow(rid,r.ingredients.length-1),30);
 }
@@ -1003,13 +1014,16 @@ function renderRecipesList() {
 // MASTER LIST
 // ============================================================
 function markListsDirty() {
-  // Show the generate button as highlighted, dim the current master list
-  const btn = document.getElementById('generateBtn');
-  if (btn) {
-    btn.classList.add('btn-dirty');
-    btn.textContent = '⚡ Generate Master & Buy List';
-  }
-  const notice = document.getElementById('listDirtyNotice');
+  const btn = document.getElementById('generateMasterBtn');
+  if (btn) { btn.classList.add('btn-dirty'); btn.textContent = '⚡ Regenerate Master List'; }
+  const notice = document.getElementById('masterDirtyNotice');
+  if (notice) notice.style.display = 'flex';
+}
+
+function markBuyDirty() {
+  const btn = document.getElementById('generateBuyBtn');
+  if (btn) { btn.classList.add('btn-dirty'); btn.textContent = '⚡ Regenerate Buy List'; }
+  const notice = document.getElementById('buyDirtyNotice');
   if (notice) notice.style.display = 'flex';
 }
 
@@ -1017,6 +1031,7 @@ function rebuildMasterList() {
   const map = {};
   for(const recipe of recipes) {
     for(const ing of recipe.ingredients) {
+      if(ing.isSponsored) continue; // sponsored items excluded — client provides these
       const key = ing.name.toLowerCase().trim();
       if(!map[key]) { const sub=ing.manualSubcat||ing.category||guessSubcat(ing.name); const parent=getParentTab(sub); map[key] = {id:key,name:ing.name,totalQty:0,unit:ing.scaledUnit,recipes:[],category:sub,subcat:sub,parentTab:parent,isSponsored:ing.isSponsored,isFuzzy:ing.isFuzzy,fuzzyReason:ing.fuzzyReason,manualStatus:null,manualSubcat:ing.manualSubcat||null,combined:false,combinedAs:'',editOpen:false}; }
       map[key].totalQty = Math.round((map[key].totalQty+ing.scaledQty)*10)/10;
@@ -1035,11 +1050,18 @@ function rebuildMasterList() {
   }
   masterList = Object.values(map);
   updateMasterList();
-  // Clear dirty state
-  const btn = document.getElementById('generateBtn');
-  if (btn) { btn.classList.remove('btn-dirty'); btn.textContent = '✦ Generate Master & Buy List'; }
-  const notice = document.getElementById('listDirtyNotice');
-  if (notice) notice.style.display = 'none';
+  // Clear master dirty state
+  const masterBtn = document.getElementById('generateMasterBtn');
+  if (masterBtn) { masterBtn.classList.remove('btn-dirty'); masterBtn.textContent = '✦ Generate Master List →'; }
+  const masterNotice = document.getElementById('masterDirtyNotice');
+  if (masterNotice) masterNotice.style.display = 'none';
+
+  // Show the Generate Buy List button
+  const buyWrap = document.getElementById('generateBuyWrap');
+  if (buyWrap) buyWrap.style.display = 'block';
+
+  // Mark buy list as needing regeneration
+  markBuyDirty();
 }
 
 function matchInventory(name) {
@@ -1103,7 +1125,7 @@ function updateMasterList() {
   const buyItems=[];
 
   container.innerHTML=masterList.map((ml,idx)=>{
-    if(ml.isSponsored) sp++;
+    if(ml.isSponsored) sp++; // won't appear here — tracked for reference only
     const inv=matchInventory(ml.name);
     let autoStatus=!inv?'buy':inv.status==='Re-purchase needed'||inv.stock===0?'buy':inv.stock<=1?'low':'ok';
     const status=ml.manualStatus||(ml.isSponsored?'sponsored':autoStatus);
@@ -1158,7 +1180,7 @@ function updateMasterList() {
   document.getElementById('countLow').textContent=low;
   document.getElementById('countBuy').textContent=buy;
   document.getElementById('countSp').textContent=sp;
-  renderFinalList(buyItems);
+  // Buy list only updates when team hits Generate Buy List
 }
 
 function toggleMasterEdit(idx){masterList[idx].editOpen=!masterList[idx].editOpen;updateMasterList();}
@@ -1173,18 +1195,44 @@ function saveMasterItem(idx){
     masterList[idx].parentTab=getParentTab(sc);
     masterList[idx].manualSubcat=sc; // persist override across rebuilds
   }
-  masterList[idx].editOpen=false; updateMasterList();
+  masterList[idx].editOpen=false; updateMasterList(); markBuyDirty();
 }
 function toggleMasterSponsored(idx){
   masterList[idx].isSponsored=!masterList[idx].isSponsored;
   masterList[idx].manualStatus=masterList[idx].isSponsored?'sponsored':null;
-  updateMasterList();
+  updateMasterList(); markBuyDirty();
 }
-function deleteMasterItem(idx){masterList.splice(idx,1);updateMasterList();}
+function deleteMasterItem(idx){masterList.splice(idx,1);updateMasterList(); markBuyDirty();}
 
 // ============================================================
 // FINAL BUY LIST
 // ============================================================
+function generateBuyList() {
+  // Collect only items that need to be bought (not in stock, not sponsored-in-pantry)
+  const buyItems = masterList.filter(ml => {
+    if(ml.isSponsored) return false; // sponsored — client provides, exclude from buy list
+    const inv = matchInventory(ml.name);
+    const status = ml.manualStatus || (() => {
+      if (!inv) return 'buy';
+      if (inv.status === 'Re-purchase needed' || inv.stock === 0) return 'buy';
+      if (inv.stock <= 1) return 'low';
+      return 'ok';
+    })();
+    return status === 'buy' || status === 'low' || status === 'unmatched';
+  });
+
+  renderFinalList(buyItems);
+
+  // Switch to buy tab
+  switchTab('buy', document.getElementById('tab-btn-buy'));
+
+  // Hide dirty notice, reset buy btn
+  const buyNotice = document.getElementById('buyDirtyNotice');
+  if (buyNotice) buyNotice.style.display = 'none';
+  const buyBtn = document.getElementById('generateBuyBtn');
+  if (buyBtn) { buyBtn.classList.remove('btn-dirty'); buyBtn.textContent = '✦ Generate Buy List →'; }
+}
+
 function renderFinalList(items) {
   items=items||[];
   const container=document.getElementById('finalBuyList');
@@ -1194,24 +1242,31 @@ function renderFinalList(items) {
     actions.style.display='none'; return;
   }
   const pName=document.getElementById('projectName').value||'Project';
-  const toBuy=items.filter(i=>!i.isSponsored);
-  const branded=items.filter(i=>i.isSponsored);
-  container.innerHTML=`
-    <div class="alert alert-info">Shopping list for <strong>${pName}</strong> — ${toBuy.length} item${toBuy.length!==1?'s':''} to purchase${branded.length?` + ${branded.length} brand item${branded.length>1?'s':''}`:''}.
-    </div>
-    ${toBuy.length?'<div class="section-label" style="margin-bottom:6px">TO PURCHASE</div>':''}
-    ${toBuy.map(it=>`<div class="final-item">
-      <span class="fi-name">${it.name}${it.isFuzzy?' <span style="color:var(--gold);font-size:10px">⚠ verify</span>':''}</span>
-      <span class="fi-qty">${it.totalQty} ${it.unit}</span>
-    </div>`).join('')}
-    ${branded.length?`
-      <div class="section-label" style="margin:12px 0 6px">BRAND / SPONSORED ITEMS</div>
-      <div class="alert alert-purple">Coordinate with account team for sourcing these items.</div>
-      ${branded.map(it=>`<div class="final-item">
-        <span class="fi-name">${it.name}</span>
-        <span class="fi-sp">⭐ BRAND</span>
+  // Group by parent tab then subcategory
+  const grouped={};
+  const parentOrder=['Fresh Produce','Frozen and Chilled Items','Dry Goods: Cooking Items','Dry Goods: Pastry Items','Uncategorized'];
+  for(const it of items){
+    const p=it.parentTab||'Fresh Produce';
+    const s=it.subcat||'Fresh Produce';
+    if(!grouped[p]) grouped[p]={};
+    if(!grouped[p][s]) grouped[p][s]=[];
+    grouped[p][s].push(it);
+  }
+  let groupedHTML='';
+  for(const parent of parentOrder){
+    if(!grouped[parent]) continue;
+    groupedHTML+=`<div class="buy-parent-header">${parent}</div>`;
+    for(const [sub,sitems] of Object.entries(grouped[parent])){
+      groupedHTML+=`<div class="buy-subcat-header">${sub}</div>`;
+      groupedHTML+=sitems.map(it=>`<div class="final-item">
+        <span class="fi-name">${it.name}${it.isFuzzy?' <span style="color:var(--gold);font-size:10px">⚠ verify</span>':''}</span>
         <span class="fi-qty">${it.totalQty} ${it.unit}</span>
-      </div>`).join('')}`:''}`;
+      </div>`).join('');
+    }
+  }
+  container.innerHTML=`
+    <div class="alert alert-info">Shopping list for <strong>${pName}</strong> — ${items.length} item${items.length!==1?'s':''} to purchase. Sponsored items excluded.</div>
+    ${groupedHTML}`;
   actions.style.display='flex';
   actions._items=items;
 }
@@ -1220,7 +1275,7 @@ function exportCSV() {
   const pName=document.getElementById('projectName').value||'Project';
   const items=document.getElementById('exportActions')._items||[];
   const rows=[['Project','Category','Subcategory','Ingredient','Qty Needed','Unit','Notes']];
-  items.forEach(it=>rows.push([pName,it.parentTab||'Uncategorized',it.subcat||'Uncategorized',it.name,it.totalQty,it.unit,it.isFuzzy?'Verify before sourcing':it.isSponsored?'Brand item — coordinate with account team':'']));
+  items.forEach(it=>rows.push([pName,it.parentTab||'Fresh Produce',it.subcat||'Fresh Produce',it.name,it.totalQty,it.unit,it.isFuzzy?'Verify before sourcing':'']));
   const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
@@ -1230,13 +1285,12 @@ function exportCSV() {
 function copyList() {
   const pName=document.getElementById('projectName').value||'Project';
   const items=document.getElementById('exportActions')._items||[];
-  const toBuy=items.filter(i=>!i.isSponsored);
-  const branded=items.filter(i=>i.isSponsored);
+  const toBuy=items; // sponsored already excluded
   const parentOrder=['Fresh Produce','Frozen and Chilled Items','Dry Goods: Cooking Items','Dry Goods: Pastry Items','Uncategorized'];
   const grouped={};
   toBuy.forEach(it=>{
-    const p=it.parentTab||'Uncategorized';
-    const s=it.subcat||'Uncategorized';
+    const p=it.parentTab||'Fresh Produce';
+    const s=it.subcat||'Fresh Produce';
     if(!grouped[p]) grouped[p]={};
     if(!grouped[p][s]) grouped[p][s]=[];
     grouped[p][s].push(it);
@@ -1250,10 +1304,7 @@ function copyList() {
       sitems.forEach(it=>{ text+=`    • ${it.name} — ${it.totalQty} ${it.unit}${it.isFuzzy?' (verify)':''}\n`; });
     }
   }
-  if(branded.length){
-    text+=`\n[ BRAND / SPONSORED ITEMS ]\n`;
-    branded.forEach(it=>{ text+=`  • ${it.name} — ${it.totalQty} ${it.unit}\n`; });
-  }
+  // sponsored items excluded — client provides these
   navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard!'));
 }
 
@@ -1287,10 +1338,13 @@ function filterInventory(){renderInventoryBrowser(document.getElementById('inven
 // TABS & UTILS
 // ============================================================
 function switchTab(tab,el){
-  ['sourcing','final','inventory'].forEach(t=>document.getElementById(`tab-${t}`).style.display=t===tab?'block':'none');
+  ['master','buy','pantry'].forEach(t=>{
+    const el2=document.getElementById(`tab-${t}`);
+    if(el2) el2.style.display=t===tab?'block':'none';
+  });
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  if(tab==='inventory') renderInventoryBrowser();
+  if(tab==='pantry') renderInventoryBrowser();
 }
 
 document.getElementById('projectName').addEventListener('input',e=>{
