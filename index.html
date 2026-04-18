@@ -587,13 +587,14 @@ const FUZZY_HINTS = [
 // FULL PANTRY CATEGORY STRUCTURE — matches Plate This sheet tabs
 // ============================================================
 const PARENT_TABS = {
+  'Fresh Produce': ['Fresh Produce'],
   'Dry Goods: Cooking Items': ['Canned Goods','Bottled Goods','Condiments','Cooking Mixes','Seasonings/ Vinegars','Noodles/ Grains','Cooking Spices','Processed Dairy','Oils'],
   'Dry Goods: Pastry Items': ['Syrups/ Jam/ Frosting','Pastry Spices/ Toppings','Biscuits/ Cookies/ Snacks','Nuts/ Seeds','Chocolates/ Dried Fruits','Baking Mixes','Sugars/ Flours/ Powders','Drinks'],
   'Frozen and Chilled Items': ['Meat and Poultry','Seafood','Processed Meats','Frozen Fruits/ Veggies','Opened Jars','Dairy','Syrups','Bread/ Pastries'],
   'Uncategorized': ['Uncategorized']
 };
-const ALL_SUBCATS = ['Canned Goods','Bottled Goods','Condiments','Cooking Mixes','Seasonings/ Vinegars','Noodles/ Grains','Cooking Spices','Processed Dairy','Oils','Syrups/ Jam/ Frosting','Pastry Spices/ Toppings','Biscuits/ Cookies/ Snacks','Nuts/ Seeds','Chocolates/ Dried Fruits','Baking Mixes','Sugars/ Flours/ Powders','Drinks','Meat and Poultry','Seafood','Processed Meats','Frozen Fruits/ Veggies','Opened Jars','Dairy','Syrups','Bread/ Pastries','Uncategorized'];
-const RECIPE_MAIN_CATS = ['Dry Goods: Cooking Items','Dry Goods: Pastry Items','Frozen and Chilled Items','Uncategorized'];
+const ALL_SUBCATS = ['Fresh Produce','Canned Goods','Bottled Goods','Condiments','Cooking Mixes','Seasonings/ Vinegars','Noodles/ Grains','Cooking Spices','Processed Dairy','Oils','Syrups/ Jam/ Frosting','Pastry Spices/ Toppings','Biscuits/ Cookies/ Snacks','Nuts/ Seeds','Chocolates/ Dried Fruits','Baking Mixes','Sugars/ Flours/ Powders','Drinks','Meat and Poultry','Seafood','Processed Meats','Frozen Fruits/ Veggies','Opened Jars','Dairy','Syrups','Bread/ Pastries','Uncategorized'];
+const RECIPE_MAIN_CATS = ['Fresh Produce','Dry Goods: Cooking Items','Dry Goods: Pastry Items','Frozen and Chilled Items','Uncategorized'];
 
 function getParentTab(subcat) {
   for (const [parent, subs] of Object.entries(PARENT_TABS)) {
@@ -999,6 +1000,15 @@ function rebuildMasterList() {
       if(ing.isSponsored) map[key].isSponsored=true;
     }
   }
+  // Carry over any manual subcat overrides from previous masterList
+  for (const ml of masterList) {
+    const key = ml.id;
+    if (map[key] && ml.manualSubcat) {
+      map[key].subcat = ml.manualSubcat;
+      map[key].parentTab = getParentTab(ml.manualSubcat);
+      map[key].manualSubcat = ml.manualSubcat;
+    }
+  }
   masterList = Object.values(map);
   updateMasterList();
 }
@@ -1129,7 +1139,11 @@ function saveMasterItem(idx){
   masterList[idx].unit=document.getElementById(`munit-${idx}`).value;
   masterList[idx].manualStatus=document.getElementById(`mstatus-${idx}`).value||null;
   const sc=document.getElementById(`msubcat-${idx}`).value;
-  if(sc) { masterList[idx].subcat=sc; masterList[idx].parentTab=getParentTab(sc); }
+  if(sc) {
+    masterList[idx].subcat=sc;
+    masterList[idx].parentTab=getParentTab(sc);
+    masterList[idx].manualSubcat=sc; // persist override across rebuilds
+  }
   masterList[idx].editOpen=false; updateMasterList();
 }
 function toggleMasterSponsored(idx){
@@ -1176,8 +1190,8 @@ function renderFinalList(items) {
 function exportCSV() {
   const pName=document.getElementById('projectName').value||'Project';
   const items=document.getElementById('exportActions')._items||[];
-  const rows=[['Project','Parent Category','Subcategory','Ingredient','Qty Needed','Unit','Type','Recipes','Notes']];
-  items.forEach(it=>rows.push([pName,it.parentTab||'Uncategorized',it.subcat||'Uncategorized',it.name,it.totalQty,it.unit,it.isSponsored?'BRAND ITEM':it.isFuzzy?'VERIFY':'PURCHASE',it.recipes.join('; '),it.fuzzyReason||'']));
+  const rows=[['Project','Category','Subcategory','Ingredient','Qty Needed','Unit','Notes']];
+  items.forEach(it=>rows.push([pName,it.parentTab||'Uncategorized',it.subcat||'Uncategorized',it.name,it.totalQty,it.unit,it.isFuzzy?'Verify before sourcing':it.isSponsored?'Brand item — coordinate with account team':'']));
   const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
@@ -1187,9 +1201,30 @@ function exportCSV() {
 function copyList() {
   const pName=document.getElementById('projectName').value||'Project';
   const items=document.getElementById('exportActions')._items||[];
-  const text=`FINAL SOURCING LIST — ${pName}\n\nTO PURCHASE:\n`+
-    items.filter(i=>!i.isSponsored).map(it=>`• ${it.name} — ${it.totalQty} ${it.unit}${it.isFuzzy?' (verify)':''}`).join('\n')+
-    (items.filter(i=>i.isSponsored).length?`\n\nBRAND ITEMS:\n`+items.filter(i=>i.isSponsored).map(it=>`• ${it.name} — ${it.totalQty} ${it.unit}`).join('\n'):'');
+  const toBuy=items.filter(i=>!i.isSponsored);
+  const branded=items.filter(i=>i.isSponsored);
+  const parentOrder=['Fresh Produce','Frozen and Chilled Items','Dry Goods: Cooking Items','Dry Goods: Pastry Items','Uncategorized'];
+  const grouped={};
+  toBuy.forEach(it=>{
+    const p=it.parentTab||'Uncategorized';
+    const s=it.subcat||'Uncategorized';
+    if(!grouped[p]) grouped[p]={};
+    if(!grouped[p][s]) grouped[p][s]=[];
+    grouped[p][s].push(it);
+  });
+  let text=`FINAL SOURCING LIST — ${pName}\n`;
+  for(const parent of parentOrder){
+    if(!grouped[parent]) continue;
+    text+=`\n[ ${parent.toUpperCase()} ]\n`;
+    for(const [sub,sitems] of Object.entries(grouped[parent])){
+      text+=`  ${sub}\n`;
+      sitems.forEach(it=>{ text+=`    • ${it.name} — ${it.totalQty} ${it.unit}${it.isFuzzy?' (verify)':''}\n`; });
+    }
+  }
+  if(branded.length){
+    text+=`\n[ BRAND / SPONSORED ITEMS ]\n`;
+    branded.forEach(it=>{ text+=`  • ${it.name} — ${it.totalQty} ${it.unit}\n`; });
+  }
   navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard!'));
 }
 
