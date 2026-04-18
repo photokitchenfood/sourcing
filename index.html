@@ -230,6 +230,8 @@ textarea.recipe-text::placeholder { color:var(--muted); line-height:1.8; }
 .filter-chip.active{background:var(--ink);color:white;border-color:var(--ink)}
 .filter-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
 
+.btn-dirty { background: var(--gold) !important; animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.8} }
 @media(max-width:900px){
   .app{grid-template-columns:1fr}
   .scaling-rows{grid-template-columns:1fr}
@@ -325,7 +327,7 @@ INGREDIENTS:
   <div class="extract-row">
     <button class="btn btn-primary" onclick="parseRecipe()" style="flex:1">✦ Parse &amp; Scale Recipe →</button>
   </div>
-  <p class="note-text">★ Paste the Claude-extracted text above, set your takes, and hit Parse. Each category scales independently.</p>
+  <p class="note-text">★ Paste the Claude-extracted text, set your takes, hit Parse. Review and edit categories in the recipe card below before generating the list.</p>
 
   <!-- Active Recipe Card -->
   <div id="recipeCard" style="display:none"></div>
@@ -342,6 +344,15 @@ INGREDIENTS:
 <div class="right">
   <h2>Sourcing &amp; Inventory</h2>
   <p style="font-size:11px;color:var(--muted)" id="rightSubtitle">Cross-checked against your pantry</p>
+
+  <!-- DIRTY NOTICE -->
+  <div id="listDirtyNotice" style="display:none;background:var(--gold-light);border:1px solid #EDD98A;border-radius:8px;padding:9px 12px;font-size:11px;color:#6B5010;margin-bottom:8px;align-items:center;gap:8px">
+    <span>⚡</span>
+    <span>Recipe cards were updated. Hit <strong>Generate</strong> to refresh the Master & Buy List.</span>
+  </div>
+  <button id="generateBtn" class="btn btn-primary" onclick="rebuildMasterList()" style="width:100%;margin-bottom:10px;font-size:13px;padding:11px">
+    ✦ Generate Master &amp; Buy List
+  </button>
 
   <div class="tab-row">
     <div class="tab active" onclick="switchTab('sourcing',this)">Master List</div>
@@ -850,7 +861,7 @@ function parseRecipe() {
 
   renderRecipeCard(recipe);
   renderRecipesList();
-  rebuildMasterList();
+  markListsDirty();
 
   document.getElementById('recipeText').value = '';
 }
@@ -918,7 +929,7 @@ function ingRow(rid,i,ing) {
 function toggleSponsored(rid,i) {
   const r = recipes.find(x=>x.id===rid); if(!r) return;
   r.ingredients[i].isSponsored = !r.ingredients[i].isSponsored;
-  renderRecipeCard(r); rebuildMasterList();
+  renderRecipeCard(r); markListsDirty();
 }
 
 function editIngRow(rid,i) {
@@ -940,16 +951,18 @@ function editIngRow(rid,i) {
 function saveIngRow(rid,i) {
   const r = recipes.find(x=>x.id===rid); if(!r) return;
   r.ingredients[i].name = document.getElementById(`ei-name-${i}`).value;
-  r.ingredients[i].category = document.getElementById(`ei-cat-${i}`).value;
+  const newCat = document.getElementById(`ei-cat-${i}`).value;
+  r.ingredients[i].category = newCat;       // subcat stored on ingredient
+  r.ingredients[i].manualSubcat = newCat;   // flag as manually set
   r.ingredients[i].scaledQty = parseFloat(document.getElementById(`ei-qty-${i}`).value)||0;
   r.ingredients[i].scaledUnit = document.getElementById(`ei-unit-${i}`).value;
   r.ingredients[i].multiplier = parseInt(document.getElementById(`ei-mul-${i}`).value)||r.takes;
-  renderRecipeCard(r); rebuildMasterList();
+  renderRecipeCard(r); markListsDirty();
 }
 
 function deleteIng(rid,i) {
   const r = recipes.find(x=>x.id===rid); if(!r) return;
-  r.ingredients.splice(i,1); renderRecipeCard(r); rebuildMasterList();
+  r.ingredients.splice(i,1); renderRecipeCard(r); markListsDirty();
 }
 
 function addManualIng(rid) {
@@ -963,7 +976,7 @@ function removeRecipe(id) {
   recipes = recipes.filter(r=>r.id!==id);
   if(recipes.length===0) document.getElementById('recipeCard').style.display='none';
   else renderRecipeCard(recipes[recipes.length-1]);
-  renderRecipesList(); rebuildMasterList();
+  renderRecipesList(); markListsDirty();
 }
 
 function clearAll() {
@@ -989,12 +1002,23 @@ function renderRecipesList() {
 // ============================================================
 // MASTER LIST
 // ============================================================
+function markListsDirty() {
+  // Show the generate button as highlighted, dim the current master list
+  const btn = document.getElementById('generateBtn');
+  if (btn) {
+    btn.classList.add('btn-dirty');
+    btn.textContent = '⚡ Generate Master & Buy List';
+  }
+  const notice = document.getElementById('listDirtyNotice');
+  if (notice) notice.style.display = 'flex';
+}
+
 function rebuildMasterList() {
   const map = {};
   for(const recipe of recipes) {
     for(const ing of recipe.ingredients) {
       const key = ing.name.toLowerCase().trim();
-      if(!map[key]) { const sub=guessSubcat(ing.name); map[key] = {id:key,name:ing.name,totalQty:0,unit:ing.scaledUnit,recipes:[],category:ing.category,subcat:sub,parentTab:getParentTab(sub),isSponsored:ing.isSponsored,isFuzzy:ing.isFuzzy,fuzzyReason:ing.fuzzyReason,manualStatus:null,combined:false,combinedAs:'',editOpen:false}; }
+      if(!map[key]) { const sub=ing.manualSubcat||ing.category||guessSubcat(ing.name); const parent=getParentTab(sub); map[key] = {id:key,name:ing.name,totalQty:0,unit:ing.scaledUnit,recipes:[],category:sub,subcat:sub,parentTab:parent,isSponsored:ing.isSponsored,isFuzzy:ing.isFuzzy,fuzzyReason:ing.fuzzyReason,manualStatus:null,manualSubcat:ing.manualSubcat||null,combined:false,combinedAs:'',editOpen:false}; }
       map[key].totalQty = Math.round((map[key].totalQty+ing.scaledQty)*10)/10;
       if(!map[key].recipes.includes(recipe.name)) map[key].recipes.push(recipe.name);
       if(ing.isSponsored) map[key].isSponsored=true;
@@ -1011,6 +1035,11 @@ function rebuildMasterList() {
   }
   masterList = Object.values(map);
   updateMasterList();
+  // Clear dirty state
+  const btn = document.getElementById('generateBtn');
+  if (btn) { btn.classList.remove('btn-dirty'); btn.textContent = '✦ Generate Master & Buy List'; }
+  const notice = document.getElementById('listDirtyNotice');
+  if (notice) notice.style.display = 'none';
 }
 
 function matchInventory(name) {
