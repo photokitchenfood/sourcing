@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plate This: Sourcing Tool — How to Use</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5F0E8;
+    --warm-white: #FDFAF5;
+    --ink: #1A1612;
+    --muted: #7A7166;
+    --accent: #C85C2A;
+    --accent-light: #F0E0D6;
+    --green: #3D6B4F;
+    --green-light: #D4E8DC;
+    --border: #D8D0C4;
+    --gold: #B8922A;
+    --gold-light: #FFF8E1;
+    --panel: #EDE8DF;
+    --purple: #6B4F8A;
+    --purple-light: #EDE0F8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.7;
+  }
+
+  /* COVER */
+  .cover {
+    background: #FDC24C;
+    color: #053E65;
+    padding: 72px 80px 60px;
+    border-bottom: 4px solid #053E65;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before, .cover::after { display: none; }
+  .cover-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #053E65;
+    opacity: 0.7;
+    margin-bottom: 20px;
+  }
+  .cover h1 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    max-width: 560px;
+    color: #053E65;
+  }
+  .cover-sub {
+    font-size: 15px;
+    color: #053E65;
+    max-width: 480px;
+    line-height: 1.6;
+  }
+  .cover-meta {
+    margin-top: 48px;
+    display: flex;
+    gap: 40px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: #053E65;
+    opacity: 0.6;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* LAYOUT */
+  .content {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 64px 40px;
+  }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 56px;
+  }
+
+  .section-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .section h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    margin-bottom: 20px;
+    color: var(--ink);
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 14px;
+    line-height: 1.75;
+  }
+
+  /* STEPS */
+  .steps { display: flex; flex-direction: column; gap: 16px; }
+
+  .step {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    background: var(--warm-white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+
+  .step-num {
+    background: var(--accent);
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .step-body { flex: 1; }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: var(--ink);
+  }
+
+  .step-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  .step-desc strong { color: var(--ink); }
+
+  /* NOTE BOXES */
+  .note {
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.65;
+    margin: 16px 0;
+  }
+  .note-orange { background: var(--accent-light); border-left: 3px solid var(--accent); color: #7A3A1A; }
+  .note-green  { background: var(--green-light);  border-left: 3px solid var(--green);  color: #1E4A30; }
+  .note-gold   { background: var(--gold-light);   border-left: 3px solid var(--gold);   color: #6B5010; }
+  .note-purple { background: var(--purple-light); border-left: 3px solid var(--purple); color: #4A2A6A; }
+  .note strong { font-weight: 700; display: block; margin-bottom: 3px; }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: var(--ink);
+    color: #F0EAE0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    margin: 16px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .code-block .hl { color: var(--accent); font-weight: 600; }
+
+  /* UI CALLOUTS */
+  .ui-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+  }
+
+  .ui-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .badge-orange { background: var(--accent); color: white; }
+  .badge-green  { background: var(--green);  color: white; }
+  .badge-gold   { background: var(--gold);   color: white; }
+  .badge-dark   { background: var(--ink);    color: white; }
+  .badge-purple { background: var(--purple); color: white; }
+  .badge-muted  { background: var(--panel);  color: var(--muted); border: 1px solid var(--border); }
+
+  /* FIELD ROW */
+  .field-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 8px 16px;
+    background: var(--warm-white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    align-items: start;
+  }
+  .field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 2px;
+  }
+  .field-desc {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+  .field-desc em { color: var(--muted); font-style: italic; font-size: 12px; }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 48px 0;
+  }
+
+  /* CHECKLIST */
+  .checklist { list-style: none; display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .checklist li::before {
+    content: '✓';
+    color: var(--green);
+    font-weight: 700;
+    font-size: 12px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--ink);
+    color: rgba(245,240,232,0.4);
+    text-align: center;
+    padding: 28px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  @media print {
+    .cover { padding: 48px; }
+    .content { padding: 40px; }
+    .section { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-eyebrow">Plate This: Sourcing Tool</div>
+  <h1>HOW TO USE</h1>
+  <p class="cover-sub">A step-by-step guide for food stylists — from extracting recipe ingredients using Claude or ChatGPT, to downloading your final buy list.</p>
+  <div class="cover-meta">
+    <span>Tool: photokitchenfood.github.io</span>
+    <span>Platform: Claude.ai or ChatGPT + Plate This Sourcing Tool</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- OVERVIEW -->
+  <div class="section">
+    <div class="section-number">Overview</div>
+    <h2>How the workflow works</h2>
+    <p>The sourcing tool is split into two parts that work together. First, you use <strong>Claude or ChatGPT</strong> to read a recipe image or document and extract a clean ingredient list. Then you paste that into the <strong>Plate This Sourcing Tool</strong> which scales the quantities, checks against your live pantry inventory, and generates a formatted buy list you can export directly into your Google Sheet.</p>
+
+    <div class="note note-green">
+      <strong>🔗 Pantry inventory is live</strong>
+      The tool connects directly to your Plate This pantry Google Sheet every time it loads. Stock levels are always up to date — no manual syncing needed.
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- STEP 1 -->
+  <div class="section">
+    <div class="section-number">Step 01</div>
+    <h2>Extract the recipe using an AI tool</h2>
+    <p>Open any AI chat tool — <strong>Claude.ai</strong> or <strong>ChatGPT</strong> both work. Use the prompt below — save it somewhere accessible for easy reuse. Attach your recipe file (image, PDF, or pre-pro slide) and send.</p>
+    <div class="note note-green">
+      <strong>✓ Works with both Claude and ChatGPT</strong>
+      Use whichever you have access to. Both can read images, PDFs, and text. The extraction prompt works the same way on either platform.
+    </div>
+
+    <div class="code-block"><span class="hl">EXTRACTION PROMPT — copy and use this every time:</span>
+
+You are a food styling assistant for a production company called Plate This.
+
+Look at everything provided — this could be a recipe document, a pre-production slide, a photo of a dish, a PPM deck, or any combination. Your job is to extract a complete and practical ingredient list that the food styling team can use to source and prepare this dish for a photoshoot or videoshoot.
+
+Use all available clues: ingredient lists, dish descriptions, food styling notes, visible components in the photo, garnishes, sauces, serveware context, and any written notes on the slide.
+
+Output format:
+DISH NAME: [name of the dish]
+ORIGINAL SERVINGS: [number, or write "not specified"]
+
+INGREDIENTS:
+- [quantity] [unit] [ingredient name] (prep note if any)
+
+Rules:
+- List every ingredient including garnishes, toppings, sauces, and bread/base
+- If quantity is not stated, make a reasonable estimate for 1 serving, note as (estimated)
+- Use decimal numbers (0.5 not ½)
+- Keep ingredient names simple and clear
+- Flag brand name products with (BRAND ITEM)
+- If something is visible in the photo but not listed, include it and mark (from image)
+- Do not include cooking instructions — ingredients only</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Attach your recipe source</div>
+          <p class="step-desc">You can attach a <strong>photo, screenshot, PDF, or pre-pro slide</strong>. If you have multiple pages for the same dish, attach all of them together — Claude will treat them as one recipe.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Paste the prompt and send</div>
+          <p class="step-desc">Paste the extraction prompt above into the chat along with your file. The AI will return a formatted ingredient list.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Review the output</div>
+          <p class="step-desc">Check that all ingredients are listed correctly. Any item flagged as <strong>(BRAND ITEM)</strong> is a client's product — you'll mark those as sponsored in the tool.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Copy the full output</div>
+          <p class="step-desc">Select and copy everything the AI returned — dish name, servings, and the full ingredient list.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- STEP 2 -->
+  <div class="section">
+    <div class="section-number">Step 02</div>
+    <h2>Open the Sourcing Tool and fill in project details</h2>
+    <p>Go to <strong>photokitchenfood.github.io</strong>. Before doing anything else, fill in the three fields at the top of the page. These are required — they appear in your exported file.</p>
+
+    <div class="field-row">
+      <div class="field-label">Project Name</div>
+      <div class="field-desc">The internal project name. <em>e.g. Lady's Choice Campaign Q2</em></div>
+
+      <div class="field-label">Client</div>
+      <div class="field-desc">The brand or client name. <em>e.g. Unilever Philippines</em></div>
+
+      <div class="field-label">Shoot Date</div>
+      <div class="field-desc">Date and day of shoot. <em>e.g. April 21, Tuesday</em> — this becomes the tab name in your Google Sheet.</div>
+    </div>
+
+    <div class="note note-orange">
+      <strong>⚠ Don't skip these fields</strong>
+      The Shoot Date field is used as the tab name when you import into Google Sheets. If it's blank, the tab will be unnamed and hard to find later.
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- STEP 3 -->
+  <div class="section">
+    <div class="section-number">Step 03</div>
+    <h2>Paste the recipe and set scaling</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Paste the extracted recipe text</div>
+          <p class="step-desc">In the left panel, paste the Claude output into the recipe text area. The tool reads the dish name and ingredient list automatically.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Set your scaling</div>
+          <p class="step-desc">
+            <strong>Number of Takes</strong> — how many full batches the food styling team needs to prepare.<br>
+            Recommended: <strong>3 takes minimum for photoshoots</strong>, <strong>5 takes minimum for videoshoots</strong>.<br><br>
+            <strong>Meat Buffer</strong> (optional) — if meat portions need a different multiplier from takes.<br>
+            <strong>Fresh Produce Buffer</strong> (optional) — if fresh items need a different multiplier.
+          </p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Hit Parse & Scale Recipe</div>
+          <p class="step-desc">The recipe card appears below with all ingredients, their categories, original quantities, and scaled quantities. Review everything before moving on.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- STEP 4 -->
+  <div class="section">
+    <div class="section-number">Step 04</div>
+    <h2>Review the recipe card — mark sponsored items</h2>
+    <p>The recipe card shows every ingredient with its auto-detected category and scaled quantity. Two things to do here before generating the master list:</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Mark sponsored / brand items with ⭐</div>
+          <p class="step-desc">Any ingredient that is the <strong>client's product</strong> (e.g. Lady's Choice Real Mayonnaise for a Unilever shoot) should be starred. Click the <strong>⭐ icon</strong> on that row. Starred items are tracked under the <strong>Client Provided</strong> tab and are <strong>automatically excluded</strong> from the buy list — the client supplies these directly.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Fix any wrong categories</div>
+          <p class="step-desc">Click the <strong>✎ pencil icon</strong> on any row to edit the ingredient name, quantity, unit, multiplier, or category. The category dropdown contains the full list of pantry subcategories — make sure each item is in the right one so the buy list groups correctly.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="note note-purple">
+      <strong>⭐ About sponsored items</strong>
+      Sponsored items appear only in the Client Provided tab — they never show up in the Master List or Buy List. This keeps your sourcing list clean and prevents the team from accidentally purchasing items the client is already providing.
+    </div>
+
+    <p>If you have more than one recipe for the same project, paste each one in and hit Parse for each. They all stack into the same master list.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- STEP 5 -->
+  <div class="section">
+    <div class="section-number">Step 05</div>
+    <h2>Generate the Master List</h2>
+    <p>Once all recipe cards look correct, go to the right panel and hit:</p>
+
+    <div class="ui-row">
+      <span class="ui-badge badge-orange">✦ Generate Master List →</span>
+    </div>
+
+    <p>The Master List shows every ingredient across all recipes, combined and de-duplicated, with its pantry status automatically checked:</p>
+
+    <div class="ui-row">
+      <span class="ui-badge badge-green">In Stock</span>
+      <span class="ui-badge badge-gold">Low Stock</span>
+      <span class="ui-badge badge-orange">Buy</span>
+      <span class="ui-badge badge-muted">⚠ Check</span>
+    </div>
+
+    <div class="note note-green">
+      <strong>🔗 Live pantry check</strong>
+      The tool compares every ingredient against your live Plate This pantry inventory in real time. Green = you have it. Orange = needs to be purchased. Items not found in the pantry at all automatically go to Buy.
+    </div>
+
+    <p>You can still edit items in the Master List — click <strong>✎</strong> on any row to adjust the name, quantity, unit, or override the status manually. This is useful when you know something is in stock but the system didn't match it correctly.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- STEP 6 -->
+  <div class="section">
+    <div class="section-number">Step 06</div>
+    <h2>Generate the Buy List</h2>
+    <p>Once you're happy with the Master List, scroll to the bottom of that tab and hit:</p>
+
+    <div class="ui-row">
+      <span class="ui-badge badge-green">✦ Generate Buy List →</span>
+    </div>
+
+    <p>The tool switches to the Buy List tab automatically. The list is grouped by:</p>
+
+    <ul class="checklist">
+      <li>Fresh Produce — first, since it's usually the first market stop</li>
+      <li>Frozen and Chilled Items — meat, seafood, dairy</li>
+      <li>Dry Goods: Cooking Items — sauces, condiments, spices, oils</li>
+      <li>Dry Goods: Pastry Items — flours, sugars, chocolates, nuts</li>
+    </ul>
+
+    <p>Each section is broken down further by subcategory (e.g. Cooking Spices, Canned Goods, Meat and Poultry) so the market run is already organized.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- STEP 7 -->
+  <div class="section">
+    <div class="section-number">Step 07</div>
+    <h2>Export and upload to Google Sheets</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Hit Download xlsx</div>
+          <p class="step-desc">Click the <strong>↓ Download xlsx</strong> button. The file downloads with your project name, client, and shoot date in the filename. The button shows "⏳ Generating..." briefly while it builds the file.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Open the Plate This master sourcing sheet</div>
+          <p class="step-desc">Go to the quarterly Google Sheet where all buy lists are stored. The file is named by quarter — e.g. <strong>APR-JUNE 2026: PT Sourcing Lists</strong>. Make sure you're in the correct quarter's sheet for your shoot date.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Import the xlsx as a new tab</div>
+          <p class="step-desc">In Google Sheets: <strong>File → Import → Upload</strong> → select your downloaded file → choose <strong>"Insert new sheet(s)"</strong> → Import. The new tab will appear named with the client and shoot date you entered.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="note note-gold">
+      <strong>📋 What the file looks like</strong>
+      The exported xlsx matches the standard Plate This format — PROJECT label in row 1, Client / Shoot Date / Budget in rows 2-4, then the six sourcing columns (VEGGIES/FRUITS · FRUITS · DAIRY/FROZEN · FRESH MEAT · SEAFOOD · DRY GOODS) with the yellow header row, Consolas font throughout.
+    </div>
+
+    <div class="note note-orange">
+      <strong>💾 CSV backup</strong>
+      If the xlsx download doesn't work, use the <strong>↓ CSV</strong> button as a backup. You can import a CSV into Google Sheets the same way.
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- QUICK REFERENCE -->
+  <div class="section">
+    <div class="section-number">Quick Reference</div>
+    <h2>Full workflow at a glance</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Claude or ChatGPT — extract ingredients</div>
+          <p class="step-desc">Use the extraction prompt + attach recipe file → copy the AI's output</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Fill in Project Name, Client, Shoot Date</div>
+          <p class="step-desc">At the top of photokitchenfood.github.io — required before anything else</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Paste recipe → set takes → Parse & Scale</div>
+          <p class="step-desc">Photo shoots: min 3 takes · Video shoots: min 5 takes</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Review recipe card → ⭐ star brand items → fix categories</div>
+          <p class="step-desc">Starred items go to Client Provided tab and are excluded from sourcing</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Generate Master List → review statuses</div>
+          <p class="step-desc">Live pantry check runs automatically. Edit any mismatches manually.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Generate Buy List → Download xlsx</div>
+          <p class="step-desc">Grouped by category, formatted and ready to import</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <div class="step-title">Import xlsx into Google Sheets as a new tab</div>
+          <p class="step-desc">File → Import → Insert new sheet(s) → done</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Plate This · Internal Use Only · photokitchenfood.github.io
+</footer>
+
+</body>
+</html>
