@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Plate This — Sourcing Calculator</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
@@ -16,15 +16,15 @@
   --blue: #2A5C8A; --blue-light: #E0EEF8;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+body { font-family: 'IBM Plex Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
 
 header {
-  background: var(--ink); color: var(--cream); padding: 14px 32px;
+  background: #FDC24C; color: #053E65; padding: 14px 32px;
   display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 3px solid var(--accent);
+  border-bottom: 3px solid #053E65;
 }
-header h1 { font-family: 'DM Serif Display', serif; font-size: 20px; }
-header span { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+header h1 { font-family: 'DM Serif Display', serif; font-size: 20px; color: #053E65; }
+header span { font-size: 10px; font-family: 'DM Mono', monospace; color: #053E65; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.7; }
 
 /* PROJECT BAR */
 .project-bar {
@@ -34,7 +34,7 @@ header span { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--m
 .project-bar label { font-size: 10px; font-family:'DM Mono',monospace; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
 .project-bar input[type=text] {
   flex: 1; max-width: 300px; padding: 7px 12px; border: 1px solid var(--border);
-  border-radius: 7px; font-family: 'DM Serif Display', serif; font-size: 15px;
+  border-radius: 7px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px;
   background: transparent; color: var(--ink);
 }
 .project-bar input:focus { outline: none; border-color: var(--accent); }
@@ -48,7 +48,7 @@ header span { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--m
   padding: 2px 8px 2px 10px; font-size: 11px; font-weight: 600;
 }
 .brand-tag button { background: none; border: none; cursor: pointer; color: var(--purple); font-size: 14px; line-height: 1; padding: 0; }
-.brand-add-input { padding: 5px 10px; border: 1px dashed var(--border); border-radius: 100px; font-size: 11px; width: 130px; background: transparent; font-family: 'DM Sans', sans-serif; }
+.brand-add-input { padding: 5px 10px; border: 1px dashed var(--border); border-radius: 100px; font-size: 11px; width: 130px; background: transparent; font-family: 'IBM Plex Sans', sans-serif; }
 .brand-add-input:focus { outline: none; border-color: var(--purple); }
 
 /* GSHEETS BAR */
@@ -102,7 +102,7 @@ textarea.recipe-text::placeholder { color:var(--muted); line-height:1.8; }
 .scale-field input:focus { outline:none; border-color:var(--accent); }
 .optional-tag { font-size:9px; color:var(--muted); font-style:italic; margin-left:3px; }
 
-.btn { padding:9px 18px; border:none; border-radius:7px; font-family:'DM Sans',sans-serif; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+.btn { padding:9px 18px; border:none; border-radius:7px; font-family:'IBM Plex Sans',sans-serif; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
 .btn-primary { background:var(--accent); color:white; }
 .btn-primary:hover { background:#B04E22; transform:translateY(-1px); }
 .btn-primary:disabled { background:var(--border); color:var(--muted); cursor:not-allowed; transform:none; }
@@ -243,8 +243,13 @@ textarea.recipe-text::placeholder { color:var(--muted); line-height:1.8; }
 <body>
 
 <header>
-  <h1>🍽 Plate This — Sourcing Calculator</h1>
-  <span>Food Styling · Pre-Production Tool</span>
+  <h1>🍽 Plate This: Sourcing Calculator</h1>
+  <div style="display:flex;align-items:center;gap:16px">
+    <span>Food Styling · Pre-Production Tool</span>
+    <a href="sourcingmanual.html" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(5,62,101,0.1);border:1px solid rgba(5,62,101,0.25);border-radius:100px;color:#053E65;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;transition:background 0.15s" onmouseover="this.style.background='rgba(5,62,101,0.18)'" onmouseout="this.style.background='rgba(5,62,101,0.1)'">
+      HOW TO USE
+    </a>
+  </div>
 </header>
 
 <!-- PROJECT BAR -->
@@ -253,10 +258,10 @@ textarea.recipe-text::placeholder { color:var(--muted); line-height:1.8; }
   <input type="text" id="projectName" placeholder="e.g. Lady's Choice Egg Salad Campaign" autocomplete="off" style="max-width:260px">
   <div class="bar-divider"></div>
   <label>Client</label>
-  <input type="text" id="clientName" placeholder="e.g. Unilever Philippines" autocomplete="off" style="max-width:200px;font-family:'DM Sans',sans-serif;font-size:13px">
+  <input type="text" id="clientName" placeholder="e.g. Unilever Philippines" autocomplete="off" style="max-width:200px;font-family:'IBM Plex Sans',sans-serif;font-size:13px">
   <div class="bar-divider"></div>
   <label>Shoot Date</label>
-  <input type="text" id="shootDate" placeholder="e.g. April 21, Tuesday" autocomplete="off" style="max-width:180px;font-family:'DM Sans',sans-serif;font-size:13px">
+  <input type="text" id="shootDate" placeholder="e.g. April 21, Tuesday" autocomplete="off" style="max-width:180px;font-family:'IBM Plex Sans',sans-serif;font-size:13px">
 
 </div>
 
