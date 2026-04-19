@@ -1302,12 +1302,12 @@ function exportXLSX() {
   const items = document.getElementById('exportActions')._items || [];
   if (!items.length) { alert('No items to export.'); return; }
 
-  const pName    = document.getElementById('projectName').value || 'Project';
-  const client   = document.getElementById('clientName').value  || 'Client';
-  const shootDate= document.getElementById('shootDate').value   || 'Date';
+  const pName     = document.getElementById('projectName').value || 'Project';
+  const client    = document.getElementById('clientName').value  || '';
+  const shootDate = document.getElementById('shootDate').value   || '';
 
-  // Tab name: CLIENT · Date (max 31 chars for Excel)
-  const tabName  = `${client} · ${shootDate}`.substring(0, 31);
+  // Tab name max 31 chars
+  const tabName = `${client || pName} ${shootDate}`.trim().substring(0, 31);
 
   // Group items into columns
   const colItems = {};
@@ -1316,21 +1316,23 @@ function exportXLSX() {
     const col = SOURCING_COL_MAP[it.subcat] || 'DRY GOODS';
     colItems[col].push(`${it.name}, ${it.totalQty} ${it.unit}${it.isFuzzy ? ' (verify)' : ''}`);
   }
-
   const maxRows = Math.max(...SOURCING_COLS.map(c => colItems[c].length), 0);
 
-  // Build worksheet data as array of arrays
+  // ── Build worksheet array of arrays ──────────────────────────────────────
   const wsData = [];
-
-  // Row 1: Title
-  wsData.push([`PLATE THIS  ·  ${pName.toUpperCase()}`, '', '', '', '', '']);
-  // Row 2: Meta
-  wsData.push([`CLIENT: ${client}     SHOOT DATE: ${shootDate}     BUDGET:      WHERE:`, '', '', '', '', '']);
-  // Row 3: Spacer
+  // Row 1: PROJECT label
+  wsData.push([`PROJECT: ${pName.toUpperCase()}`, '', '', '', '', '']);
+  // Row 2: Client
+  wsData.push(['Client:', client, '', '', '', '']);
+  // Row 3: Shoot Date
+  wsData.push(['Shoot Date:', shootDate, '', '', '', '']);
+  // Row 4: Budget
+  wsData.push(['Budget:', '', '', '', '', '']);
+  // Row 5: Spacer
   wsData.push(['', '', '', '', '', '']);
-  // Row 4: Column headers
+  // Row 6: Column headers
   wsData.push([...SOURCING_COLS]);
-  // Rows 5+: Items
+  // Rows 7+: Items side by side
   for (let i = 0; i < maxRows; i++) {
     wsData.push(SOURCING_COLS.map(col => colItems[col][i] || ''));
   }
@@ -1338,34 +1340,75 @@ function exportXLSX() {
   // Create worksheet
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Merge title row across all 6 columns
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }, // title
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }, // meta
-    { s: { r: 2, c: 0 }, e: { r: 2, c: 5 } }, // spacer
-  ];
+  // ── Cell styling via SheetJS ──────────────────────────────────────────────
+  const FONT_BASE  = { name: 'Consolas', sz: 12 };
+  const FONT_BOLD  = { name: 'Consolas', sz: 12, bold: true };
+  const YELLOW_FILL= { patternType: 'solid', fgColor: { rgb: 'FBBC04' } };
+  const ALIGN_L    = { horizontal: 'left',   vertical: 'center' };
+  const ALIGN_R    = { horizontal: 'right',  vertical: 'center' };
+  const ALIGN_C    = { horizontal: 'center', vertical: 'center' };
+  const THIN_BORDER= { top:{style:'thin',color:{rgb:'D8D0C4'}}, bottom:{style:'thin',color:{rgb:'D8D0C4'}}, left:{style:'thin',color:{rgb:'D8D0C4'}}, right:{style:'thin',color:{rgb:'D8D0C4'}} };
 
-  // Column widths
+  function cellRef(r, c) {
+    return XLSX.utils.encode_cell({ r, c });
+  }
+  function styleCell(r, c, style) {
+    const ref = cellRef(r, c);
+    if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+    ws[ref].s = style;
+  }
+
+  // Row 0 (Row 1): PROJECT header — bold
+  if (ws['A1']) ws['A1'].s = { font: FONT_BOLD, alignment: ALIGN_L };
+
+  // Rows 1-3 (Rows 2-4): label bold right-aligned in col A, value normal in col B
+  [[1,'A2'],[1,'B2'],[2,'A3'],[2,'B3'],[3,'A4'],[3,'B4']].forEach(([,ref]) => {
+    if (ws[ref]) ws[ref].s = {
+      font: ref.startsWith('A') ? FONT_BOLD : FONT_BASE,
+      alignment: ref.startsWith('A') ? ALIGN_R : ALIGN_L
+    };
+  });
+
+  // Row 5 (Row 6): Column headers — bold, yellow fill, centered, border
+  SOURCING_COLS.forEach((_, ci) => {
+    const ref = cellRef(5, ci);
+    if (!ws[ref]) ws[ref] = { t: 's', v: SOURCING_COLS[ci] };
+    ws[ref].s = { font: FONT_BOLD, fill: YELLOW_FILL, alignment: ALIGN_C, border: THIN_BORDER };
+  });
+
+  // Rows 6+ (Row 7+): Items — normal font, left aligned, border
+  for (let ri = 6; ri < 6 + maxRows; ri++) {
+    for (let ci = 0; ci < SOURCING_COLS.length; ci++) {
+      const ref = cellRef(ri, ci);
+      if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+      ws[ref].s = { font: FONT_BASE, alignment: ALIGN_L, border: THIN_BORDER };
+    }
+  }
+
+  // ── Sheet config ──────────────────────────────────────────────────────────
   ws['!cols'] = [
-    { wch: 26 }, { wch: 20 }, { wch: 22 }, { wch: 22 }, { wch: 20 }, { wch: 28 }
+    { wch: 30 }, // VEGGIES/FRUITS
+    { wch: 22 }, // FRUITS
+    { wch: 24 }, // DAIRY/FROZEN
+    { wch: 24 }, // FRESH MEAT
+    { wch: 22 }, // SEAFOOD
+    { wch: 32 }, // DRY GOODS
   ];
-
-  // Row heights
   ws['!rows'] = [
-    { hpt: 28 }, // title
-    { hpt: 16 }, // meta
-    { hpt: 8  }, // spacer
-    { hpt: 20 }, // headers
-    ...Array(maxRows).fill({ hpt: 16 })
+    { hpt: 20 }, // row 1 project
+    { hpt: 18 }, // row 2 client
+    { hpt: 18 }, // row 3 shoot date
+    { hpt: 18 }, // row 4 budget
+    { hpt: 8  }, // row 5 spacer
+    { hpt: 22 }, // row 6 headers
+    ...Array(maxRows).fill({ hpt: 18 })
   ];
 
-  // Create workbook and append sheet
+  // ── Write file ────────────────────────────────────────────────────────────
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, tabName);
-
-  // Download
-  const filename = `${pName.replace(/\s+/g,'-')}_${client.replace(/\s+/g,'-')}_${shootDate.replace(/[^a-zA-Z0-9]/g,'-')}.xlsx`;
-  XLSX.writeFile(wb, filename);
+  const filename = `${pName.replace(/\s+/g,'-')}_${(client||'').replace(/\s+/g,'-')}_${(shootDate||'').replace(/[^a-zA-Z0-9]/g,'-')}.xlsx`.replace(/^-+|-+$/g,'');
+  XLSX.writeFile(wb, filename, { cellStyles: true });
 }
 
 function exportCSV() {
