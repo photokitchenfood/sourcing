@@ -1298,7 +1298,53 @@ const SOURCING_COL_MAP = {
   // Everything else defaults to DRY GOODS
 };
 
-function exportXLSX() {
+async function exportXLSX() {
+  const items = document.getElementById('exportActions')._items || [];
+  if (!items.length) { alert('No items to export.'); return; }
+
+  const pName     = document.getElementById('projectName').value || 'Project';
+  const client    = document.getElementById('clientName').value  || '';
+  const shootDate = document.getElementById('shootDate').value   || '';
+
+  // Group items into columns
+  const colItems = {};
+  SOURCING_COLS.forEach(c => colItems[c] = []);
+  for (const it of items) {
+    const col = SOURCING_COL_MAP[it.subcat] || 'DRY GOODS';
+    colItems[col].push(`${it.name}, ${it.totalQty} ${it.unit}${it.isFuzzy ? ' (verify)' : ''}`);
+  }
+
+  // Show loading state on button
+  const btn = event.currentTarget;
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Generating...';
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch('https://plate-this-proxy.nilcah.workers.dev/xlsx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project: pName, client, shootDate, colItems }),
+    });
+
+    if (!resp.ok) throw new Error(`Worker error: ${resp.status}`);
+
+    const blob = await resp.blob();
+    const filename = `${pName.replace(/\s+/g,'-')}_${(client||'').replace(/\s+/g,'-')}_${(shootDate||'').replace(/[^a-zA-Z0-9]/g,'-')}.xlsx`.replace(/^-+|-+-/g,'-');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+  } catch(err) {
+    console.error(err);
+    alert('Could not generate xlsx. Check your connection and try again.\n\nYou can still use Export CSV as backup.');
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
+function exportXLSX_unused() {
   const items = document.getElementById('exportActions')._items || [];
   if (!items.length) { alert('No items to export.'); return; }
 
