@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Plate This — Sourcing Calculator</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --cream: #F5F0E8; --warm-white: #FDFAF5; --ink: #1A1612;
@@ -249,7 +250,13 @@ textarea.recipe-text::placeholder { color:var(--muted); line-height:1.8; }
 <!-- PROJECT BAR -->
 <div class="project-bar">
   <label>Project Name</label>
-  <input type="text" id="projectName" placeholder="e.g. Lady's Choice Egg Salad Campaign" autocomplete="off">
+  <input type="text" id="projectName" placeholder="e.g. Lady's Choice Egg Salad Campaign" autocomplete="off" style="max-width:260px">
+  <div class="bar-divider"></div>
+  <label>Client</label>
+  <input type="text" id="clientName" placeholder="e.g. Unilever Philippines" autocomplete="off" style="max-width:200px;font-family:'DM Sans',sans-serif;font-size:13px">
+  <div class="bar-divider"></div>
+  <label>Shoot Date</label>
+  <input type="text" id="shootDate" placeholder="e.g. April 21, Tuesday" autocomplete="off" style="max-width:180px;font-family:'DM Sans',sans-serif;font-size:13px">
 
 </div>
 
@@ -383,7 +390,8 @@ INGREDIENTS:
       <div class="empty-state"><div class="big">🛒</div><p>Generate the Master List first,<br>review it, then hit Generate Buy List.</p></div>
     </div>
     <div class="export-actions" id="exportActions" style="display:none">
-      <button class="btn btn-primary" onclick="exportCSV()">↓ Export CSV</button>
+      <button class="btn btn-primary" onclick="exportXLSX()">↓ Download xlsx</button>
+      <button class="btn btn-ghost" onclick="exportCSV()">↓ CSV</button>
       <button class="btn btn-ghost" onclick="copyList()">Copy as Text</button>
     </div>
   </div>
@@ -1274,6 +1282,90 @@ function renderFinalList(items) {
     ${groupedHTML}`;
   actions.style.display='flex';
   actions._items=items;
+}
+
+// Category → column mapping (matching Plate This sourcing sheet format)
+const SOURCING_COLS = ['VEGGIES / FRUITS', 'FRUITS', 'DAIRY / FROZEN', 'FRESH MEAT', 'SEAFOOD', 'DRY GOODS'];
+const SOURCING_COL_MAP = {
+  'Fresh Produce':          'VEGGIES / FRUITS',
+  'Frozen Fruits/ Veggies': 'DAIRY / FROZEN',
+  'Dairy':                  'DAIRY / FROZEN',
+  'Processed Dairy':        'DAIRY / FROZEN',
+  'Meat and Poultry':       'FRESH MEAT',
+  'Seafood':                'SEAFOOD',
+  'Processed Meats':        'FRESH MEAT',
+  'Bread/ Pastries':        'DRY GOODS',
+  // Everything else defaults to DRY GOODS
+};
+
+function exportXLSX() {
+  const items = document.getElementById('exportActions')._items || [];
+  if (!items.length) { alert('No items to export.'); return; }
+
+  const pName    = document.getElementById('projectName').value || 'Project';
+  const client   = document.getElementById('clientName').value  || 'Client';
+  const shootDate= document.getElementById('shootDate').value   || 'Date';
+
+  // Tab name: CLIENT · Date (max 31 chars for Excel)
+  const tabName  = `${client} · ${shootDate}`.substring(0, 31);
+
+  // Group items into columns
+  const colItems = {};
+  SOURCING_COLS.forEach(c => colItems[c] = []);
+  for (const it of items) {
+    const col = SOURCING_COL_MAP[it.subcat] || 'DRY GOODS';
+    colItems[col].push(`${it.name}, ${it.totalQty} ${it.unit}${it.isFuzzy ? ' (verify)' : ''}`);
+  }
+
+  const maxRows = Math.max(...SOURCING_COLS.map(c => colItems[c].length), 0);
+
+  // Build worksheet data as array of arrays
+  const wsData = [];
+
+  // Row 1: Title
+  wsData.push([`PLATE THIS  ·  ${pName.toUpperCase()}`, '', '', '', '', '']);
+  // Row 2: Meta
+  wsData.push([`CLIENT: ${client}     SHOOT DATE: ${shootDate}     BUDGET:      WHERE:`, '', '', '', '', '']);
+  // Row 3: Spacer
+  wsData.push(['', '', '', '', '', '']);
+  // Row 4: Column headers
+  wsData.push([...SOURCING_COLS]);
+  // Rows 5+: Items
+  for (let i = 0; i < maxRows; i++) {
+    wsData.push(SOURCING_COLS.map(col => colItems[col][i] || ''));
+  }
+
+  // Create worksheet
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Merge title row across all 6 columns
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }, // title
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }, // meta
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 5 } }, // spacer
+  ];
+
+  // Column widths
+  ws['!cols'] = [
+    { wch: 26 }, { wch: 20 }, { wch: 22 }, { wch: 22 }, { wch: 20 }, { wch: 28 }
+  ];
+
+  // Row heights
+  ws['!rows'] = [
+    { hpt: 28 }, // title
+    { hpt: 16 }, // meta
+    { hpt: 8  }, // spacer
+    { hpt: 20 }, // headers
+    ...Array(maxRows).fill({ hpt: 16 })
+  ];
+
+  // Create workbook and append sheet
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, tabName);
+
+  // Download
+  const filename = `${pName.replace(/\s+/g,'-')}_${client.replace(/\s+/g,'-')}_${shootDate.replace(/[^a-zA-Z0-9]/g,'-')}.xlsx`;
+  XLSX.writeFile(wb, filename);
 }
 
 function exportCSV() {
