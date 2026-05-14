@@ -428,11 +428,34 @@ function renderTable() {
 
   body.innerHTML=tableData.map((row,ri)=>`<tr class="${row.starred?'starred':''}" id="row-${ri}">
     <td class="star-cell"><button class="star-btn ${row.starred?'on':''}" onclick="toggleRowStar(${ri})" title="Mark as client-provided">⭐</button></td>
-    ${activeCols.map(col=>`<td><textarea class="cell-input" rows="1" placeholder="${col==='VEGGIES / FRUITS'?'e.g. Beetroot, 2pcs':col==='DAIRY / FROZEN'?'e.g. Eggs, 2 dozen':col==='FRESH MEAT'?'e.g. Chicken thigh, 1kg':col==='SEAFOOD'?'e.g. Shrimp, 500g':col==='FRUITS'?'e.g. Strawberry, 1 pack':'e.g. Brown Sugar, 2kg'}" oninput="updateCell(${ri},'${col}',this.value);autoResize(this)" onpaste="handleCellPaste(event,${ri},'${col}')">${row.cells[col]||''}</textarea></td>`).join('')}
+    ${activeCols.map(col=>`<td><textarea class="cell-input" rows="1" data-row="${ri}" data-col="${col}" placeholder="${col==='VEGGIES / FRUITS'?'e.g. Beetroot, 2pcs':col==='DAIRY / FROZEN'?'e.g. Eggs, 2 dozen':col==='FRESH MEAT'?'e.g. Chicken thigh, 1kg':col==='SEAFOOD'?'e.g. Shrimp, 500g':col==='FRUITS'?'e.g. Strawberry, 1 pack':'e.g. Brown Sugar, 2kg'}" oninput="updateCell(${ri},'${col}',this.value);autoResize(this)">${row.cells[col]||''}</textarea></td>`).join('')}
   </tr>`).join('');
 
   // Auto resize all textareas
   body.querySelectorAll('.cell-input').forEach(t=>autoResize(t));
+
+  // Delegated paste handler — avoids broken inline attributes with special chars in col names
+  body.addEventListener('paste', function(e) {
+    const el = e.target;
+    if (!el.classList.contains('cell-input')) return;
+    const ri = parseInt(el.dataset.row);
+    const col = el.dataset.col;
+    const text = (e.clipboardData||window.clipboardData).getData('text');
+    const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    if (lines.length <= 1) return;
+    e.preventDefault();
+    while(tableData.length < ri + lines.length + 1) tableData.push({starred:false,cells:{}});
+    lines.forEach((line,i) => {
+      if(!tableData[ri+i]) tableData[ri+i]={starred:false,cells:{}};
+      tableData[ri+i].cells[col] = line;
+    });
+    tableData.push({starred:false,cells:{}});
+    renderTable();
+    setTimeout(()=>{
+      const nextRow=document.querySelector('#row-'+(ri+lines.length));
+      if(nextRow){const cells=nextRow.querySelectorAll('.cell-input');const idx=activeCols.indexOf(col);if(cells[idx+1])cells[idx+1].focus();}
+    },50);
+  }, {once:false});
 }
 
 function autoResize(el) {
@@ -447,39 +470,6 @@ function updateCell(ri,col,val) {
   if(ri===tableData.length-1&&val.trim()){tableData.push({starred:false,cells:{}});renderTable();}
 }
 
-function handleCellPaste(e,ri,col) {
-  const text = (e.clipboardData||window.clipboardData).getData('text');
-  const lines = text.split(/?
-/).map(l=>l.trim()).filter(Boolean);
-  // Only intercept if multi-line paste
-  if(lines.length <= 1) return;
-  e.preventDefault();
-
-  // Ensure enough rows exist
-  while(tableData.length < ri + lines.length + 1) {
-    tableData.push({starred:false,cells:{}});
-  }
-
-  // Fill one item per row starting from current row
-  lines.forEach((line, i) => {
-    if(!tableData[ri+i]) tableData[ri+i] = {starred:false,cells:{}};
-    tableData[ri+i].cells[col] = line;
-  });
-
-  // Always ensure a blank row at the end
-  tableData.push({starred:false,cells:{}});
-  renderTable();
-
-  // Focus the cell after the last pasted row
-  setTimeout(() => {
-    const nextRow = document.querySelector(`#row-${ri+lines.length}`);
-    if(nextRow) {
-      const cell = nextRow.querySelectorAll('.cell-input');
-      const colIdx = activeCols.indexOf(col);
-      if(cell[colIdx]) cell[colIdx].focus();
-    }
-  }, 50);
-}
 
 function toggleRowStar(ri) {
   tableData[ri].starred=!tableData[ri].starred;
