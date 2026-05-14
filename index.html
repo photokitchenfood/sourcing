@@ -7,244 +7,260 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --cream: #F5F0E8; --warm-white: #FDFAF5; --ink: #1A1612;
-  --muted: #7A7166; --accent: #C85C2A; --accent-light: #F0E0D6;
-  --green: #3D6B4F; --green-light: #D4E8DC; --border: #D8D0C4;
-  --gold: #B8922A; --gold-light: #FFF8E1; --panel: #EDE8DF;
-  --blue: #053E65; --yellow: #FDC24C; --purple: #6B4F8A; --purple-light: #EDE0F8;
+  --cream:#F5F0E8;--warm:#FDFAF5;--ink:#1A1612;--muted:#7A7166;
+  --accent:#C85C2A;--accent-light:#F0E0D6;--green:#3D6B4F;--green-light:#D4E8DC;
+  --border:#D8D0C4;--gold:#B8922A;--gold-light:#FFF8E1;--panel:#EDE8DF;
+  --blue:#053E65;--yellow:#FDC24C;--purple:#6B4F8A;--purple-light:#EDE0F8;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'IBM Plex Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;}
 
-header {
-  background: var(--yellow); color: var(--blue); padding: 14px 32px;
-  display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 3px solid var(--blue);
+/* HEADER */
+header{background:var(--yellow);color:var(--blue);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--blue);}
+header h1{font-family:'DM Serif Display',serif;font-size:19px;color:var(--blue);}
+.hdr-right{display:flex;align-items:center;gap:14px;}
+.hdr-sub{font-size:10px;font-family:'DM Mono',monospace;color:var(--blue);letter-spacing:.12em;text-transform:uppercase;opacity:.7;}
+.how-link{display:inline-flex;align-items:center;padding:4px 11px;background:rgba(5,62,101,.1);border:1px solid rgba(5,62,101,.25);border-radius:100px;color:var(--blue);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;transition:background .15s;}
+.how-link:hover{background:rgba(5,62,101,.18);}
+
+/* PROJECT BAR */
+.proj-bar{background:var(--warm);border-bottom:1px solid var(--border);padding:9px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.bl{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.bi{padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;background:transparent;color:var(--ink);transition:border-color .2s;}
+.bi:focus{outline:none;border-color:var(--accent);}
+.bdiv{width:1px;height:20px;background:var(--border);}
+
+/* INVENTORY BAR */
+.inv-bar{background:var(--green-light);border-bottom:1px solid #B8DEC8;padding:7px 28px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.inv-bar span.lbl{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--green);}
+.inv-st{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;}
+.ist-ok{color:var(--green);}.ist-err{color:var(--accent);}.ist-idle{color:var(--muted);}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:1fr 420px;min-height:calc(100vh - 112px);}
+.left{padding:20px 24px;border-right:1px solid var(--border);overflow-y:auto;}
+.right{background:var(--warm);padding:20px 22px;overflow-y:auto;}
+
+.sec-lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+
+/* COLUMN MANAGER */
+.col-manager{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;background:var(--warm);border:1px solid var(--border);border-radius:8px;}
+.col-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px 3px 10px;background:var(--blue);color:white;border-radius:100px;font-size:11px;font-family:'DM Mono',monospace;font-weight:500;}
+.col-chip button{background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:13px;line-height:1;padding:0 1px;}
+.col-chip button:hover{color:white;}
+.col-add-wrap{display:flex;gap:5px;align-items:center;}
+.col-add-select{padding:4px 8px;border:1px dashed var(--border);border-radius:100px;font-size:11px;font-family:'IBM Plex Sans',sans-serif;background:transparent;cursor:pointer;}
+.col-add-select:focus{outline:none;}
+
+/* SOURCING TABLE */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--warm);}
+table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
+.stbl thead th{
+  background:var(--yellow);color:var(--blue);
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  padding:10px 10px;text-align:left;font-weight:700;border-bottom:2px solid var(--blue);
+  white-space:nowrap;position:sticky;top:0;z-index:2;
 }
-header h1 { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--blue); }
-.header-right { display: flex; align-items: center; gap: 16px; }
-header .subtitle { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--blue); letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.7; }
-.how-to-link { display: inline-flex; align-items: center; padding: 5px 12px; background: rgba(5,62,101,0.1); border: 1px solid rgba(5,62,101,0.25); border-radius: 100px; color: var(--blue); font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; transition: background 0.15s; }
-.how-to-link:hover { background: rgba(5,62,101,0.18); }
+.stbl thead th:not(:last-child){border-right:1px solid rgba(5,62,101,.15);}
+.stbl tbody td{padding:0;border-bottom:1px solid #F0EAE0;vertical-align:top;}
+.stbl tbody td:not(:last-child){border-right:1px solid #F0EAE0;}
+.stbl tbody tr:last-child td{border-bottom:none;}
+.stbl tbody tr:hover td{background:#FAF5EE;}
 
-.project-bar { background: var(--warm-white); border-bottom: 1px solid var(--border); padding: 10px 32px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.bar-label { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
-.bar-input { padding: 6px 11px; border: 1px solid var(--border); border-radius: 7px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; background: transparent; color: var(--ink); transition: border-color 0.2s; }
-.bar-input:focus { outline: none; border-color: var(--accent); }
-.bar-divider { width: 1px; height: 22px; background: var(--border); }
+/* CELL INPUT */
+.cell-input{
+  width:100%;padding:8px 10px;border:none;outline:none;
+  font-family:'DM Mono',monospace;font-size:12px;line-height:1.5;
+  background:transparent;color:var(--ink);resize:none;
+  min-height:36px;display:block;
+}
+.cell-input:focus{background:#FFFBF5;}
+.cell-input::placeholder{color:#C8C0B4;font-style:italic;}
 
-.inventory-bar { background: var(--green-light); border-bottom: 1px solid #B8DEC8; padding: 8px 32px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.inventory-bar input { flex: 1; max-width: 500px; padding: 5px 10px; border: 1px solid #B8DEC8; border-radius: 6px; font-size: 12px; font-family: 'DM Mono', monospace; background: white; }
-.inventory-bar input:focus { outline: none; border-color: var(--green); }
-.inv-status { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; }
-.inv-ok { color: var(--green); } .inv-err { color: var(--accent); } .inv-idle { color: var(--muted); }
+/* ADD ROW */
+.add-row-btn{width:100%;padding:8px;text-align:center;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);border:none;background:var(--panel);cursor:pointer;border-top:1px solid var(--border);border-radius:0 0 10px 10px;transition:background .15s;}
+.add-row-btn:hover{background:var(--border);color:var(--ink);}
 
-.app { display: grid; grid-template-columns: 1fr 460px; min-height: calc(100vh - 115px); }
+/* STARRED ROW */
+.star-cell{width:32px;text-align:center;padding:0!important;}
+.star-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:8px 4px;opacity:.3;transition:opacity .15s;display:block;width:100%;}
+.star-btn:hover,.star-btn.on{opacity:1;}
+.stbl tbody tr.starred td{background:var(--purple-light)!important;}
 
-.left { padding: 24px 28px; border-right: 1px solid var(--border); overflow-y: auto; }
-.right { background: var(--warm-white); padding: 24px 24px; overflow-y: auto; }
+/* BUTTONS */
+.btn{padding:8px 16px;border:none;border-radius:7px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:white;}
+.btn-primary:hover{background:#B04E22;transform:translateY(-1px);}
+.btn-green{background:var(--green);color:white;}
+.btn-green:hover{background:#2D5A3D;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);font-size:12px;padding:6px 12px;}
+.btn-ghost:hover{background:var(--panel);color:var(--ink);}
+.btn-ghost.active{background:var(--ink);color:white;border-color:var(--ink);}
+.btn-sm{padding:4px 10px;font-size:11px;}
+.btn-row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;}
 
-.section-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+/* RIGHT PANEL */
+.right h2{font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:3px;}
 
-.input-tabs { display: flex; gap: 2px; background: var(--panel); border-radius: 8px; padding: 3px; margin-bottom: 14px; }
-.input-tab { flex: 1; padding: 6px; text-align: center; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; color: var(--muted); transition: all 0.15s; }
-.input-tab.active { background: white; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+/* STEP TABS */
+.step-tabs{display:flex;gap:2px;margin:10px 0;background:var(--panel);border-radius:8px;padding:3px;}
+.step-tab{flex:1;padding:6px 4px;text-align:center;font-size:11px;font-weight:600;border-radius:6px;cursor:pointer;color:var(--muted);transition:all .15s;line-height:1.3;}
+.step-tab.active{background:white;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.step-num{display:block;font-family:'DM Mono',monospace;font-size:9px;opacity:.6;margin-bottom:1px;}
 
-.url-wrap { display: flex; gap: 8px; align-items: center; }
-.url-wrap input { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px; font-family: 'DM Mono', monospace; font-size: 12px; background: var(--warm-white); }
-.url-wrap input:focus { outline: none; border-color: var(--accent); }
+/* SUMMARY */
+.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;}
+.tile{text-align:center;padding:10px 6px;border-radius:8px;border:1px solid var(--border);}
+.tile-num{font-family:'DM Serif Display',serif;font-size:26px;display:block;}
+.tile-lbl{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.tile-ok{background:var(--green-light);}.tile-low{background:var(--gold-light);}.tile-buy{background:#FEF0EA;}
 
-textarea.slist { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 12px; line-height: 1.9; resize: vertical; min-height: 260px; background: var(--warm-white); color: var(--ink); }
-textarea.slist:focus { outline: none; border-color: var(--accent); }
-textarea.slist::placeholder { color: var(--muted); }
+/* CHECK ITEMS */
+.check-item{padding:8px 10px;border-radius:7px;font-size:12px;margin-bottom:3px;border:1px solid transparent;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.check-item.ok{background:var(--green-light);border-color:#B8DEC8;}
+.check-item.low{background:var(--gold-light);border-color:#EDD98A;}
+.check-item.buy{background:#FEF0EA;border-color:#F5C8B4;}
+.check-item.sp{background:var(--purple-light);border-color:#D0B8EC;}
+.ci-name{font-weight:500;flex:1;}
+.ci-stock{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.badge{font-size:9px;font-family:'DM Mono',monospace;font-weight:600;padding:3px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;flex-shrink:0;}
+.b-ok{background:var(--green);color:white;}.b-low{background:var(--gold);color:white;}
+.b-buy{background:var(--accent);color:white;}.b-sp{background:var(--purple);color:white;}
 
-.hint { background: var(--panel); border-radius: 8px; padding: 12px 14px; font-size: 11px; color: var(--muted); line-height: 1.7; margin-bottom: 12px; }
-.hint strong { color: var(--ink); display: block; margin-bottom: 3px; font-size: 12px; }
-code { font-family: 'DM Mono', monospace; font-size: 10px; background: rgba(0,0,0,0.05); padding: 1px 5px; border-radius: 3px; }
+/* COMBINE SUGGESTION */
+.combine-box{background:#E0EEF8;border:1px dashed #A8C8E8;border-radius:7px;padding:8px 12px;margin-bottom:6px;font-size:11px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.combine-box strong{color:var(--blue);}
 
-.btn { padding: 9px 18px; border: none; border-radius: 7px; font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-.btn-primary { background: var(--accent); color: white; }
-.btn-primary:hover { background: #B04E22; transform: translateY(-1px); }
-.btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 12px; padding: 6px 12px; }
-.btn-ghost:hover { background: var(--panel); color: var(--ink); }
-.btn-green { background: var(--green); color: white; }
-.btn-green:hover { background: #2D5A3D; }
-.btn-sm { padding: 4px 10px; font-size: 11px; }
-.note-text { font-size: 10px; color: var(--muted); font-style: italic; margin-top: 6px; }
+/* BUY LIST */
+.buy-cat-header{background:var(--ink);color:white;padding:5px 10px;border-radius:6px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin:10px 0 4px;font-weight:700;}
+.buy-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--border);font-size:13px;}
+.buy-item:last-child{border-bottom:none;}
+.buy-name{font-weight:500;}
+.buy-stock{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
 
-.slist-display { background: var(--warm-white); border: 1px solid var(--border); border-radius: 10px; margin-top: 16px; overflow: hidden; }
-.slist-header { padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.slist-header h3 { font-family: 'DM Serif Display', serif; font-size: 16px; }
-.slist-header span { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); }
-.slist-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 16px; border-bottom: 1px solid #F0EAE0; font-size: 13px; }
-.slist-item:last-child { border-bottom: none; }
-.slist-item.starred { background: var(--purple-light); }
-.star-btn { background: none; border: none; cursor: pointer; font-size: 15px; padding: 2px 6px; opacity: 0.35; transition: opacity 0.15s; flex-shrink: 0; }
-.star-btn:hover, .star-btn.on { opacity: 1; }
+/* EXPORT */
+.export-wrap{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;}
 
-.tab-row { display: flex; gap: 2px; margin: 12px 0; background: var(--panel); border-radius: 8px; padding: 3px; }
-.tab { flex: 1; padding: 6px; text-align: center; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; color: var(--muted); transition: all 0.15s; }
-.tab.active { background: white; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.alert{padding:8px 12px;border-radius:7px;font-size:11px;margin-bottom:10px;line-height:1.5;}
+.alert-info{background:var(--accent-light);border:1px solid #E8C0A8;color:#7A3A1A;}
+.alert-purple{background:var(--purple-light);border:1px solid #D0B8EC;color:#4A2A6A;}
+.alert-blue{background:#E0EEF8;border:1px solid #A8C8E8;color:var(--blue);}
 
-.summary-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-.tile { text-align: center; padding: 12px 8px; border-radius: 8px; border: 1px solid var(--border); }
-.tile-num { font-family: 'DM Serif Display', serif; font-size: 28px; display: block; }
-.tile-label { font-size: 9px; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
-.tile-ok { background: var(--green-light); } .tile-low { background: var(--gold-light); } .tile-buy { background: #FEF0EA; }
+.empty{text-align:center;padding:32px 16px;color:var(--muted);}
+.empty .big{font-size:34px;margin-bottom:8px;}
+.empty p{font-size:12px;line-height:1.6;}
+.note{font-size:10px;color:var(--muted);font-style:italic;margin-top:5px;}
 
-.check-item { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 9px 12px; border-radius: 7px; font-size: 12px; margin-bottom: 3px; border: 1px solid transparent; }
-.check-item.ok { background: var(--green-light); border-color: #B8DEC8; }
-.check-item.low { background: var(--gold-light); border-color: #EDD98A; }
-.check-item.buy { background: #FEF0EA; border-color: #F5C8B4; }
-.check-item.sponsored { background: var(--purple-light); border-color: #D0B8EC; }
-.ci-name { font-weight: 500; font-size: 13px; }
-.ci-stock { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
-
-.status-badge { font-size: 9px; font-family: 'DM Mono', monospace; font-weight: 600; padding: 3px 7px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
-.badge-ok { background: var(--green); color: white; }
-.badge-low { background: var(--gold); color: white; }
-.badge-buy { background: var(--accent); color: white; }
-.badge-sp { background: var(--purple); color: white; }
-
-.buy-header { background: var(--ink); color: white; padding: 6px 12px; border-radius: 6px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; margin: 12px 0 5px; font-weight: 600; }
-.buy-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
-.buy-item:last-child { border-bottom: none; }
-.buy-name { font-weight: 500; }
-.buy-stock { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
-
-.pantry-search { margin: 8px 0; position: relative; }
-.pantry-search input { width: 100%; padding: 8px 10px 8px 30px; border: 1px solid var(--border); border-radius: 7px; font-size: 12px; background: white; }
-.pantry-search input:focus { outline: none; border-color: var(--accent); }
-.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
-.filter-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
-.filter-chip { padding: 3px 9px; font-size: 10px; border: 1px solid var(--border); border-radius: 100px; cursor: pointer; background: white; font-family: 'DM Mono', monospace; transition: all 0.15s; }
-.filter-chip.active { background: var(--ink); color: white; border-color: var(--ink); }
-
-.export-actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
-.alert { padding: 9px 12px; border-radius: 7px; font-size: 11px; margin-bottom: 10px; line-height: 1.5; }
-.alert-info { background: var(--accent-light); border: 1px solid #E8C0A8; color: #7A3A1A; }
-.alert-purple { background: var(--purple-light); border: 1px solid #D0B8EC; color: #4A2A6A; }
-.empty-state { text-align: center; padding: 40px 16px; color: var(--muted); }
-.empty-state .big { font-size: 36px; margin-bottom: 8px; }
-.empty-state p { font-size: 12px; line-height: 1.6; }
-
-@media(max-width:900px) { .app { grid-template-columns: 1fr; } .right { border-top: 2px solid var(--border); } }
+@media(max-width:960px){.app{grid-template-columns:1fr;}.right{border-top:2px solid var(--border);}}
 </style>
 </head>
 <body>
 
 <header>
   <h1>🍽 Plate This: Sourcing Calculator</h1>
-  <div class="header-right">
-    <span class="subtitle">Food Styling · Pre-Production Tool</span>
-    <a href="sourcingmanual.html" target="_blank" class="how-to-link">HOW TO USE</a>
+  <div class="hdr-right">
+    <span class="hdr-sub">Food Styling · Pre-Production Tool</span>
+    <a href="sourcingmanual.html" target="_blank" class="how-link">HOW TO USE</a>
   </div>
 </header>
 
-<div class="project-bar">
-  <span class="bar-label">Project</span>
-  <input class="bar-input" id="projectName" type="text" placeholder="Project name" style="max-width:260px" autocomplete="off">
-  <div class="bar-divider"></div>
-  <span class="bar-label">Client</span>
-  <input class="bar-input" id="clientName" type="text" placeholder="Client name" style="max-width:180px" autocomplete="off">
-  <div class="bar-divider"></div>
-  <span class="bar-label">Shoot Date</span>
-  <input class="bar-input" id="shootDate" type="text" placeholder="e.g. April 21, Tuesday" style="max-width:190px" autocomplete="off">
+<div class="proj-bar">
+  <span class="bl">Project</span>
+  <input class="bi" id="projectName" type="text" placeholder="Project name" style="max-width:240px" autocomplete="off">
+  <div class="bdiv"></div>
+  <span class="bl">Client</span>
+  <input class="bi" id="clientName" type="text" placeholder="Client name" style="max-width:170px" autocomplete="off">
+  <div class="bdiv"></div>
+  <span class="bl">Shoot Date</span>
+  <input class="bi" id="shootDate" type="text" placeholder="e.g. April 21, Tuesday" style="max-width:185px" autocomplete="off">
 </div>
 
-<div class="inventory-bar">
+<div class="inv-bar">
   <span>📊</span>
-  <span class="bar-label" style="color:var(--green)">Pantry Inventory URL</span>
-  <input type="text" id="inventoryUrl" placeholder="Paste published Google Sheets CSV URL...">
-  <button class="btn btn-ghost btn-sm" onclick="loadInventory()" style="border-color:#B8DEC8;color:var(--green)">Sync</button>
-  <span class="inv-status inv-idle" id="invStatus">⬤ Using built-in inventory</span>
+  <span class="lbl">Pantry Inventory</span>
+  <span class="inv-st ist-idle" id="invStatus">⬤ Loading...</span>
 </div>
 
 <div class="app">
 
-<!-- LEFT -->
+<!-- LEFT: SOURCING TABLE -->
 <div class="left">
-  <div class="section-label">Your Sourcing List</div>
+  <div class="sec-lbl" style="margin-bottom:10px">Sourcing List — type directly into the table</div>
 
-  <div class="input-tabs">
-    <div class="input-tab active" id="itab-paste" onclick="switchInput('paste')">Paste Text</div>
-    <div class="input-tab" id="itab-url" onclick="switchInput('url')">Google Sheet URL</div>
+  <!-- COLUMN MANAGER -->
+  <div class="col-manager" id="colManager">
+    <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-right:4px">Columns:</span>
+    <div id="colChips"></div>
+    <div class="col-add-wrap">
+      <select class="col-add-select" id="colAddSelect" onchange="addColumn(this.value);this.value=''">
+        <option value="">+ Add column</option>
+      </select>
+    </div>
+  </div>
+  <p class="note" style="margin-bottom:10px">★ Click × on any column header to hide it. Use ⭐ to mark client-provided items — they won't appear in your buy list.</p>
+
+  <!-- TABLE -->
+  <div class="tbl-wrap">
+    <table class="stbl" id="sourcingTable">
+      <thead id="tblHead"></thead>
+      <tbody id="tblBody"></tbody>
+    </table>
+    <button class="add-row-btn" onclick="addRow()">+ Add Row</button>
   </div>
 
-  <div id="panel-paste">
-    <div class="hint">
-      <strong>Paste your sourcing list — any format works</strong>
-      One item per line, exactly how your team writes it:<br>
-      <code>3 bundles spring onion</code> &nbsp;·&nbsp;
-      <code>2 cans white beans</code> &nbsp;·&nbsp;
-      <code>chicken thigh fillet, 1kg</code>
-    </div>
-    <textarea class="slist" id="paste-input" placeholder="3 bundles spring onion&#10;2 cans white beans, drained&#10;chicken thigh fillet, 1kg&#10;Lady's Choice Real Mayonnaise, 1 gallon&#10;elbow macaroni, 500g&#10;black pepper, 1 bottle&#10;3 tali dahon ng saging"></textarea>
-    <button class="btn btn-primary" style="width:100%;margin-top:10px;padding:12px" onclick="parseAndCheck()">✦ Check Against Pantry →</button>
-    <p class="note-text">★ After checking, tap ⭐ on any item to mark it as client-provided — it will be excluded from your buy list.</p>
+  <div class="btn-row">
+    <button class="btn btn-primary" style="flex:1;padding:11px" onclick="runCheck()">✦ Check Against Pantry →</button>
+    <button class="btn btn-ghost btn-sm" onclick="clearTable()">Clear</button>
   </div>
-
-  <div id="panel-url" style="display:none">
-    <div class="hint">
-      <strong>Link your sourcing list tab</strong>
-      In Google Sheets: open your sourcing tab → File → Share → Publish to web → select this tab → CSV format → copy and paste the URL below.
-    </div>
-    <div class="url-wrap">
-      <input type="text" id="url-input" placeholder="Paste published CSV URL of your sourcing list tab...">
-      <button class="btn btn-primary" onclick="loadFromUrl()">Check →</button>
-    </div>
-    <p class="note-text">★ The tool reads your list directly from the sheet — no copy-pasting needed.</p>
-  </div>
-
-  <div id="slistDisplay"></div>
 </div>
 
-<!-- RIGHT -->
+<!-- RIGHT: 3-STEP PANEL -->
 <div class="right">
   <h2>Pantry Cross-Check</h2>
-  <p style="font-size:11px;color:var(--muted);margin-bottom:10px" id="rightSub">Paste your sourcing list and hit Check Against Pantry</p>
+  <p style="font-size:11px;color:var(--muted);margin-bottom:8px" id="rightSub">Fill in your sourcing list and hit Check Against Pantry</p>
 
-  <div class="tab-row">
-    <div class="tab active" id="rtab-check" onclick="switchResult('check',this)">① Check Results</div>
-    <div class="tab" id="rtab-buy" onclick="switchResult('buy',this)">② Buy List</div>
-    <div class="tab" id="rtab-pantry" onclick="switchResult('pantry',this)">Pantry</div>
+  <div class="step-tabs">
+    <div class="step-tab active" id="stab-1" onclick="switchStep(1,this)"><span class="step-num">STEP 1</span>Pantry Check</div>
+    <div class="step-tab" id="stab-2" onclick="switchStep(2,this)"><span class="step-num">STEP 2</span>Buy List</div>
+    <div class="step-tab" id="stab-3" onclick="switchStep(3,this)"><span class="step-num">STEP 3</span>Export</div>
   </div>
 
-  <!-- CHECK RESULTS -->
-  <div id="rpanel-check">
-    <div id="summaryBar" style="display:none" class="summary-bar">
-      <div class="tile tile-ok"><span class="tile-num" id="cntOk">0</span><span class="tile-label">In Stock</span></div>
-      <div class="tile tile-low"><span class="tile-num" id="cntLow">0</span><span class="tile-label">Low / Check</span></div>
-      <div class="tile tile-buy"><span class="tile-num" id="cntBuy">0</span><span class="tile-label">Need to Buy</span></div>
+  <!-- STEP 1: PANTRY CHECK -->
+  <div id="spanel-1">
+    <div id="summary1" style="display:none" class="summary">
+      <div class="tile tile-ok"><span class="tile-num" id="cnt1Ok">0</span><span class="tile-lbl">In Stock</span></div>
+      <div class="tile tile-low"><span class="tile-num" id="cnt1Low">0</span><span class="tile-lbl">Low Stock</span></div>
+      <div class="tile tile-buy"><span class="tile-num" id="cnt1Buy">0</span><span class="tile-buy"><span class="tile-num" id="cnt1BuyX" style="display:none"></span><span class="tile-lbl">Need to Buy</span></span></div>
     </div>
-    <div id="checkResults">
-      <div class="empty-state"><div class="big">🥕</div><p>Paste your sourcing list on the left<br>and hit <strong>Check Against Pantry</strong>.</p></div>
+    <div id="checkOut">
+      <div class="empty"><div class="big">🥕</div><p>Type your sourcing list in the table on the left,<br>then hit <strong>Check Against Pantry</strong>.</p></div>
     </div>
-    <div id="genBuyWrap" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-      <button class="btn btn-green" style="width:100%;font-size:13px;padding:11px" onclick="generateBuyList()">✦ Generate Buy List →</button>
-    </div>
-  </div>
-
-  <!-- BUY LIST -->
-  <div id="rpanel-buy" style="display:none">
-    <div id="buyContent">
-      <div class="empty-state"><div class="big">🛒</div><p>Generate the Buy List from the Check Results tab.</p></div>
-    </div>
-    <div class="export-actions" id="exportActions" style="display:none">
-      <button class="btn btn-primary" onclick="exportXLSX(event)">↓ Download xlsx</button>
-      <button class="btn btn-ghost" onclick="exportCSV()">↓ CSV</button>
-      <button class="btn btn-ghost" onclick="copyList()">Copy as Text</button>
+    <div id="toBuyListWrap" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <button class="btn btn-green" style="width:100%;padding:11px;font-size:13px" onclick="buildBuyList()">✦ Generate Buy List →</button>
     </div>
   </div>
 
-  <!-- PANTRY -->
-  <div id="rpanel-pantry" style="display:none">
-    <div class="pantry-search">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="pantrySearch" placeholder="Search pantry..." oninput="renderPantry()">
+  <!-- STEP 2: BUY LIST -->
+  <div id="spanel-2" style="display:none">
+    <div id="combineSuggestions"></div>
+    <div id="buyListOut">
+      <div class="empty"><div class="big">🛒</div><p>Complete Step 1 first.</p></div>
     </div>
-    <div class="filter-row" id="pantryFilters"></div>
-    <div id="pantryBrowser"></div>
+  </div>
+
+  <!-- STEP 3: EXPORT -->
+  <div id="spanel-3" style="display:none">
+    <div class="alert alert-blue" style="margin-bottom:14px">
+      <strong style="display:block;margin-bottom:4px">Ready to export</strong>
+      Download as a formatted xlsx that matches your Plate This sourcing sheet format, or export as PDF.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" style="padding:13px;font-size:14px" onclick="exportXLSX(event)">↓ Download xlsx</button>
+      <button class="btn btn-ghost" style="padding:11px" onclick="exportPDF()">↓ Save as PDF</button>
+      <button class="btn btn-ghost" style="padding:11px" onclick="exportCSV()">↓ Export CSV</button>
+      <button class="btn btn-ghost" style="padding:11px" onclick="copyText()">Copy as Text</button>
+    </div>
+    <p class="note" style="margin-top:10px">The xlsx file uses Consolas 12pt with #FBBC04 yellow headers, matching your APR-JUNE 2026: PT Sourcing Lists sheet format. Tab name = Client + Shoot Date.</p>
   </div>
 </div>
 
@@ -261,9 +277,8 @@ let INVENTORY = [
   {cat:"Canned Goods",name:"Black Beans",stock:2,unit:"can"},{cat:"Canned Goods",name:"Garbanzos",stock:4,unit:"can"},
   {cat:"Canned Goods",name:"Anchovies",stock:1,unit:"can"},{cat:"Canned Goods",name:"Liver Spread",stock:5,unit:"can"},
   {cat:"Canned Goods",name:"Diced Tomatoes",stock:1,unit:"can"},{cat:"Canned Goods",name:"Mushroom",stock:1,unit:"can"},{cat:"Canned Goods",name:"Spam",stock:1,unit:"can"},
-  {cat:"Bottled Goods",name:"Pickle Relish",stock:3,unit:"jar"},{cat:"Bottled Goods",name:"Capers",stock:1,unit:"jar"},
-  {cat:"Bottled Goods",name:"Black Olives",stock:3,unit:"jar"},{cat:"Bottled Goods",name:"Jalapeños",stock:3,unit:"jar"},
-  {cat:"Bottled Goods",name:"Atchara",stock:5,unit:"jar"},{cat:"Bottled Goods",name:"Tahini",stock:2,unit:"jar"},
+  {cat:"Bottled Goods",name:"Pickle Relish",stock:3,unit:"jar"},{cat:"Bottled Goods",name:"Capers",stock:1,unit:"jar"},{cat:"Bottled Goods",name:"Black Olives",stock:3,unit:"jar"},
+  {cat:"Bottled Goods",name:"Jalapeños",stock:3,unit:"jar"},{cat:"Bottled Goods",name:"Atchara",stock:5,unit:"jar"},{cat:"Bottled Goods",name:"Tahini",stock:2,unit:"jar"},
   {cat:"Bottled Goods",name:"Sundried Tomatoes",stock:1,unit:"jar"},{cat:"Bottled Goods",name:"Classic Pesto",stock:2,unit:"jar"},
   {cat:"Bottled Goods",name:"Cornichons",stock:0,unit:"jar"},{cat:"Bottled Goods",name:"Green Olives",stock:0,unit:"jar"},
   {cat:"Condiments",name:"Mustard",stock:5,unit:"bottle"},{cat:"Condiments",name:"Banana Ketchup",stock:5,unit:"bottle"},
@@ -335,266 +350,412 @@ let INVENTORY = [
   {cat:"Baking",name:"Vanilla Extract",stock:2,unit:"bottle"},{cat:"Baking",name:"Cream of Tartar",stock:3,unit:"pack"},
 ];
 
-const SAVED_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?output=csv';
+// ============================================================
+// INVENTORY SYNC
+// ============================================================
+const SAVED_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?output=csv';
 
-// ── Inventory sync ────────────────────────────────────────────────────────────
-async function loadInventory(preset) {
-  const url = preset || document.getElementById('inventoryUrl').value.trim() || SAVED_URL;
-  const st = document.getElementById('invStatus');
-  st.className='inv-status inv-idle'; st.textContent='⬤ Connecting...';
-  try {
-    let csvUrl = url.includes('/edit') ? url.replace(/\/edit.*$/,'/pub?output=csv') : url;
-    if (!csvUrl.includes('output=csv')) csvUrl += (csvUrl.includes('?')?'&':'?')+'output=csv';
-    const proxies = [u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,u=>u];
-    let text=null;
-    for (const p of proxies) { try { const r=await fetch(p(csvUrl)); if(!r.ok) continue; const t=await r.text(); if(t.trim().startsWith('<')||t.trim().startsWith('{')) continue; text=t; break; } catch(e){continue;} }
-    if (!text) throw new Error('Failed');
-    const parsed = parseInventoryCSV(text);
-    if (parsed.length>0) { INVENTORY=parsed; st.className='inv-status inv-ok'; st.textContent=`⬤ Live — ${parsed.length} items`; }
-    else throw new Error('Empty');
-  } catch(e) { st.className='inv-status inv-err'; st.textContent='⬤ Sync failed — using built-in'; }
-}
-
-function parseInventoryCSV(text) {
-  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
-  function pl(line) { const r=[]; let c='',q=false; for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(q&&line[i+1]==='"'){c+='"';i++;}else q=!q;}else if(ch===','&&!q){r.push(c.trim());c='';}else c+=ch;} r.push(c.trim()); return r; }
-  const rows=lines.filter(l=>l.trim()).map(pl);
-  if(rows.length<2) return [];
-  const h=rows[0].map(x=>x.toLowerCase().trim());
-  const ni=h.findIndex(x=>x.includes('item')||x==='name'); const ci=h.findIndex(x=>x.includes('cat')); const si=h.findIndex(x=>x.includes('stock')); const ui=h.findIndex(x=>x.includes('unit'));
-  if(ni<0) return [];
-  return rows.slice(1).filter(r=>r[ni]&&r[ni].trim()).map(r=>({name:r[ni]?.trim()||'',cat:ci>=0?r[ci]?.trim()||'General':'General',stock:parseFloat(r[si])||0,unit:ui>=0?r[ui]?.trim()||'':''}));
-}
-
-window.addEventListener('load', ()=>loadInventory(SAVED_URL));
-
-// ── Input tab switching ───────────────────────────────────────────────────────
-function switchInput(tab) {
-  document.getElementById('panel-paste').style.display=tab==='paste'?'block':'none';
-  document.getElementById('panel-url').style.display=tab==='url'?'block':'none';
-  document.getElementById('itab-paste').classList.toggle('active',tab==='paste');
-  document.getElementById('itab-url').classList.toggle('active',tab==='url');
-}
-
-// ── Sourcing list state ───────────────────────────────────────────────────────
-let items = [];
-
-function parseLines(text) {
-  return text.split('\n').map(l=>l.trim()).filter(Boolean).map(raw => {
-    // Extract name for matching — strip leading quantities
-    let name = raw;
-    const m1 = raw.match(/^[\d./]+\s*[a-zA-Z]*\s+(.+)/); // "3 bundles spring onion"
-    const m2 = raw.match(/^(.+?)[,\s]+[\d./]+\s*[a-zA-Z]*$/); // "chicken thigh, 1kg"
-    if (m1) name = m1[1].trim();
-    else if (m2) name = m2[1].trim().replace(/,$/,'');
-    return { raw, name, starred: false };
-  });
-}
-
-function parseAndCheck() {
-  const text = document.getElementById('paste-input').value.trim();
-  if (!text) { alert('Please paste your sourcing list first.'); return; }
-  items = parseLines(text);
-  renderList(); runCheck();
-}
-
-async function loadFromUrl() {
-  const url = document.getElementById('url-input').value.trim();
-  if (!url) { alert('Please paste a URL first.'); return; }
-  const btn = event.currentTarget; btn.textContent='⏳ Loading...'; btn.disabled=true;
+async function loadInventory() {
+  const st=document.getElementById('invStatus');
+  st.className='inv-st ist-idle';st.textContent='⬤ Connecting...';
   try {
     const proxies=[u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,u=>u];
     let text=null;
-    for(const p of proxies){try{const r=await fetch(p(url));if(!r.ok)continue;const t=await r.text();if(t.trim().startsWith('<'))continue;text=t;break;}catch(e){continue;}}
-    if(!text) throw new Error('Could not fetch');
-    items = parseLines(text.replace(/\r\n/g,'\n').replace(/\r/g,'\n'));
-    renderList(); runCheck();
-  } catch(e) { alert('Could not load the sheet. Make sure the tab is published as CSV.'); }
-  btn.textContent='Check →'; btn.disabled=false;
+    for(const p of proxies){try{const r=await fetch(p(SAVED_URL));if(!r.ok)continue;const t=await r.text();if(t.trim().startsWith('<')||t.trim().startsWith('{'))continue;text=t;break;}catch(e){continue;}}
+    if(!text)throw new Error('Failed');
+    const parsed=parseInvCSV(text);
+    if(parsed.length>0){INVENTORY=parsed;st.className='inv-st ist-ok';st.textContent=`⬤ Live — ${parsed.length} items`;}
+    else throw new Error('Empty');
+  }catch(e){st.className='inv-st ist-err';st.textContent='⬤ Sync failed — using built-in inventory';}
 }
 
-function toggleStar(i) {
-  items[i].starred = !items[i].starred;
-  renderList(); runCheck();
+function parseInvCSV(text) {
+  const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  function pl(line){const r=[];let c='',q=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(q&&line[i+1]==='"'){c+='"';i++;}else q=!q;}else if(ch===','&&!q){r.push(c.trim());c='';}else c+=ch;}r.push(c.trim());return r;}
+  const rows=lines.filter(l=>l.trim()).map(pl);
+  if(rows.length<2)return[];
+  const h=rows[0].map(x=>x.toLowerCase().trim());
+  const ni=h.findIndex(x=>x.includes('item')||x==='name');const ci=h.findIndex(x=>x.includes('cat'));const si=h.findIndex(x=>x.includes('stock'));const ui=h.findIndex(x=>x.includes('unit'));
+  if(ni<0)return[];
+  return rows.slice(1).filter(r=>r[ni]&&r[ni].trim()).map(r=>({name:r[ni]?.trim()||'',cat:ci>=0?r[ci]?.trim()||'General':'General',stock:parseFloat(r[si])||0,unit:ui>=0?r[ui]?.trim()||'':''}));
 }
 
-function renderList() {
-  const el = document.getElementById('slistDisplay');
-  const pName = document.getElementById('projectName').value || 'Sourcing List';
-  el.innerHTML = `<div class="slist-display">
-    <div class="slist-header">
-      <h3>${pName}</h3>
-      <span>${items.length} items · ⭐ = client-provided</span>
-    </div>
-    ${items.map((it,i)=>`<div class="slist-item ${it.starred?'starred':''}">
-      <span style="font-size:13px">${it.raw}</span>
-      <button class="star-btn ${it.starred?'on':''}" onclick="toggleStar(${i})" title="Client-provided — exclude from buy list">⭐</button>
-    </div>`).join('')}
-  </div>`;
+// ============================================================
+// COLUMN MANAGEMENT
+// ============================================================
+const ALL_COLS=['VEGGIES / FRUITS','FRUITS','DAIRY / FROZEN','FRESH MEAT','SEAFOOD','DRY GOODS'];
+let activeCols=[...ALL_COLS];
+let tableData=[]; // array of row objects: {starred, cells:{colName:value}}
+
+function renderColManager() {
+  const chips=document.getElementById('colChips');
+  chips.innerHTML=activeCols.map(c=>`<div class="col-chip">${c}<button onclick="removeColumn('${c}')" title="Hide column">×</button></div>`).join('');
+  const sel=document.getElementById('colAddSelect');
+  const hidden=ALL_COLS.filter(c=>!activeCols.includes(c));
+  sel.innerHTML=`<option value="">+ Add column</option>`+hidden.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.style.display=hidden.length?'block':'none';
 }
 
-// ── Pantry matching ───────────────────────────────────────────────────────────
+function addColumn(col) {
+  if(!col||activeCols.includes(col))return;
+  const idx=ALL_COLS.indexOf(col);
+  let inserted=false;
+  for(let i=0;i<activeCols.length;i++){if(ALL_COLS.indexOf(activeCols[i])>idx){activeCols.splice(i,0,col);inserted=true;break;}}
+  if(!inserted)activeCols.push(col);
+  renderColManager();renderTable();
+}
+
+function removeColumn(col) {
+  activeCols=activeCols.filter(c=>c!==col);
+  renderColManager();renderTable();
+}
+
+// ============================================================
+// TABLE MANAGEMENT
+// ============================================================
+function renderTable() {
+  const head=document.getElementById('tblHead');
+  const body=document.getElementById('tblBody');
+
+  // Header
+  head.innerHTML=`<tr>
+    <th style="width:32px;text-align:center">⭐</th>
+    ${activeCols.map(c=>`<th>${c}</th>`).join('')}
+  </tr>`;
+
+  // Ensure enough rows
+  while(tableData.length<8)tableData.push({starred:false,cells:{}});
+
+  body.innerHTML=tableData.map((row,ri)=>`<tr class="${row.starred?'starred':''}" id="row-${ri}">
+    <td class="star-cell"><button class="star-btn ${row.starred?'on':''}" onclick="toggleRowStar(${ri})" title="Mark as client-provided">⭐</button></td>
+    ${activeCols.map(col=>`<td><textarea class="cell-input" rows="1" placeholder="${col==='VEGGIES / FRUITS'?'e.g. Beetroot, 2pcs':col==='DAIRY / FROZEN'?'e.g. Eggs, 2 dozen':col==='FRESH MEAT'?'e.g. Chicken thigh, 1kg':col==='SEAFOOD'?'e.g. Shrimp, 500g':col==='FRUITS'?'e.g. Strawberry, 1 pack':'e.g. Brown Sugar, 2kg'}" oninput="updateCell(${ri},'${col}',this.value);autoResize(this)">${row.cells[col]||''}</textarea></td>`).join('')}
+  </tr>`).join('');
+
+  // Auto resize all textareas
+  body.querySelectorAll('.cell-input').forEach(t=>autoResize(t));
+}
+
+function autoResize(el) {
+  el.style.height='auto';
+  el.style.height=Math.max(36,el.scrollHeight)+'px';
+}
+
+function updateCell(ri,col,val) {
+  if(!tableData[ri])tableData[ri]={starred:false,cells:{}};
+  tableData[ri].cells[col]=val;
+  // Auto-add row if last row is being filled
+  if(ri===tableData.length-1&&val.trim()){tableData.push({starred:false,cells:{}});renderTable();}
+}
+
+function toggleRowStar(ri) {
+  tableData[ri].starred=!tableData[ri].starred;
+  const row=document.getElementById(`row-${ri}`);
+  row.classList.toggle('starred',tableData[ri].starred);
+  row.querySelector('.star-btn').classList.toggle('on',tableData[ri].starred);
+}
+
+function addRow() {
+  tableData.push({starred:false,cells:{}});renderTable();
+  // Scroll to last row
+  const body=document.getElementById('tblBody');
+  const lastRow=body.lastElementChild;
+  if(lastRow)lastRow.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function clearTable() {
+  if(!confirm('Clear all rows?'))return;
+  tableData=[];renderTable();
+  document.getElementById('checkOut').innerHTML='<div class="empty"><div class="big">🥕</div><p>Fill in your sourcing list and hit <strong>Check Against Pantry</strong>.</p></div>';
+  document.getElementById('summary1').style.display='none';
+  document.getElementById('toBuyListWrap').style.display='none';
+}
+
+// ============================================================
+// ITEM EXTRACTION FROM TABLE
+// ============================================================
+function getTableItems() {
+  const items=[];
+  tableData.forEach((row,ri)=>{
+    activeCols.forEach(col=>{
+      const val=(row.cells[col]||'').trim();
+      if(!val)return;
+      // Split by newlines in case multiple items per cell
+      val.split('\n').filter(Boolean).forEach(line=>{
+        items.push({raw:line.trim(),col,starred:row.starred,rowIdx:ri});
+      });
+    });
+  });
+  return items;
+}
+
+// ============================================================
+// PANTRY MATCHING
+// ============================================================
 function matchItem(name) {
-  const s = name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
-  const words = s.split(' ').filter(w=>w.length>2);
-  let best=0, bestItem=null;
-  for (const item of INVENTORY) {
-    const iname = item.name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
+  // Clean name — strip quantity prefix/suffix for matching
+  let clean=name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
+  // Remove common quantity patterns: "2pcs", "1kg", "3 bundles", etc.
+  clean=clean.replace(/\b\d+\s*(pcs?|kg|g|ml|l|cups?|tbsp?|tsp?|bottles?|packs?|cans?|jars?|bundles?|slabs?|dozen|box|boxes|tali|pieces?)\b/gi,'').trim();
+  clean=clean.replace(/^\d+\s*/,'').trim(); // leading numbers
+  const words=clean.split(' ').filter(w=>w.length>2);
+  let best=0,bestItem=null;
+  for(const item of INVENTORY){
+    const iname=item.name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
     let score=0;
-    if(iname===s) score=100;
-    else if(s.length>=4&&iname.includes(s)) score=85;
-    else if(iname.length>=5&&s.includes(iname)) score=75;
+    if(iname===clean)score=100;
+    else if(clean.length>=4&&iname.includes(clean))score=85;
+    else if(iname.length>=5&&clean.includes(iname))score=75;
     else if(words.length>0){const iw=iname.split(' ').filter(w=>w.length>2);const m=words.filter(w=>iw.some(x=>x===w));if(m.length===words.length&&words.length>0)score=70;}
     if(score>best){best=score;bestItem=item;}
   }
   return best>=70?bestItem:null;
 }
 
-// ── Cross-check ───────────────────────────────────────────────────────────────
-let results = [];
+// ============================================================
+// STEP 1: PANTRY CHECK
+// ============================================================
+let checkResults=[];
 
 function runCheck() {
-  results = items.map(it => {
-    if (it.starred) return {...it, status:'sponsored', inv:null};
-    const inv = matchItem(it.name);
-    const status = !inv ? 'buy' : inv.stock===0||inv.status==='Re-purchase needed' ? 'buy' : inv.stock<=1 ? 'low' : 'ok';
-    return {...it, status, inv};
+  const items=getTableItems();
+  if(!items.length){alert('Your sourcing list is empty. Add some items first.');return;}
+
+  checkResults=items.map(it=>{
+    if(it.starred)return{...it,status:'sp',inv:null};
+    const inv=matchItem(it.raw);
+    const status=!inv?'buy':inv.stock===0||inv.status==='Re-purchase needed'?'buy':inv.stock<=1?'low':'ok';
+    return{...it,status,inv};
   });
 
   let ok=0,low=0,buy=0;
-  results.forEach(r=>{if(r.status==='ok')ok++;else if(r.status==='low')low++;else if(r.status==='buy')buy++;});
+  checkResults.forEach(r=>{if(r.status==='ok')ok++;else if(r.status==='low')low++;else if(r.status==='buy')buy++;});
 
-  document.getElementById('summaryBar').style.display='grid';
-  document.getElementById('cntOk').textContent=ok;
-  document.getElementById('cntLow').textContent=low;
-  document.getElementById('cntBuy').textContent=buy;
-  document.getElementById('rightSub').textContent=`${items.length} items checked · ${ok} in stock · ${low+buy} to source`;
+  document.getElementById('summary1').style.display='grid';
+  document.getElementById('cnt1Ok').textContent=ok;
+  document.getElementById('cnt1Low').textContent=low;
+  // Fix the nested span issue
+  document.getElementById('summary1').innerHTML=`
+    <div class="tile tile-ok"><span class="tile-num">${ok}</span><span class="tile-lbl">In Stock</span></div>
+    <div class="tile tile-low"><span class="tile-num">${low}</span><span class="tile-lbl">Low Stock</span></div>
+    <div class="tile tile-buy"><span class="tile-num">${buy}</span><span class="tile-lbl">Need to Buy</span></div>`;
+  document.getElementById('summary1').style.display='grid';
 
-  document.getElementById('checkResults').innerHTML = results.map(r=>{
-    const cls=r.status==='ok'?'ok':r.status==='low'?'low':r.status==='sponsored'?'sponsored':'buy';
-    const badge=r.status==='ok'?'<span class="status-badge badge-ok">In Stock</span>':r.status==='low'?'<span class="status-badge badge-low">Low Stock</span>':r.status==='sponsored'?'<span class="status-badge badge-sp">⭐ Client</span>':'<span class="status-badge badge-buy">Buy</span>';
-    const stock=r.inv?`${r.inv.stock} ${r.inv.unit} in pantry`:r.status==='sponsored'?'Client provided':'Not in pantry';
-    return `<div class="check-item ${cls}"><div><div class="ci-name">${r.raw}</div><div class="ci-stock">${stock}</div></div>${badge}</div>`;
-  }).join('');
+  // Group by column
+  const byCol={};
+  checkResults.forEach(r=>{if(!byCol[r.col])byCol[r.col]=[];byCol[r.col].push(r);});
 
-  document.getElementById('genBuyWrap').style.display='block';
-  switchResult('check', document.getElementById('rtab-check'));
+  let html='';
+  activeCols.forEach(col=>{
+    const colItems=byCol[col]||[];
+    if(!colItems.length)return;
+    html+=`<div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 5px;padding-bottom:4px;border-bottom:1px solid var(--border)">${col}</div>`;
+    html+=colItems.map(r=>{
+      const cls=r.status==='ok'?'ok':r.status==='low'?'low':r.status==='sp'?'sp':'buy';
+      const badge=r.status==='ok'?'<span class="badge b-ok">In Stock</span>':r.status==='low'?'<span class="badge b-low">Low</span>':r.status==='sp'?'<span class="badge b-sp">⭐ Client</span>':'<span class="badge b-buy">Buy</span>';
+      const stock=r.inv?`${r.inv.stock} ${r.inv.unit} in pantry`:r.status==='sp'?'Client provided':'Not in pantry';
+      return`<div class="check-item ${cls}"><div><div class="ci-name">${r.raw}</div><div class="ci-stock">${stock}</div></div>${badge}</div>`;
+    }).join('');
+  });
+
+  document.getElementById('checkOut').innerHTML=html;
+  document.getElementById('toBuyListWrap').style.display='block';
+  document.getElementById('rightSub').textContent=`${items.length} items · ${ok} in stock · ${low+buy} to source`;
+  switchStep(1,document.getElementById('stab-1'));
 }
 
-// ── Buy list ──────────────────────────────────────────────────────────────────
+// ============================================================
+// COMBINE GROUPS
+// ============================================================
+const COMBINE_GROUPS=[
+  {label:'Neutral Oil',members:['canola oil','vegetable oil','sunflower oil','corn oil','cooking oil']},
+  {label:'Salt',members:['sea salt','iodized salt','rock salt','table salt','kosher salt','pink salt','salt']},
+  {label:'Sugar',members:['white sugar','brown sugar','muscovado sugar','refined sugar','light brown sugar']},
+  {label:'Soy Sauce',members:['soy sauce','dark soy sauce','light soy sauce']},
+  {label:'All-Purpose Flour',members:['flour','all-purpose flour','plain flour']},
+  {label:'Garlic (Fried)',members:['garlic bits','fried garlic','crispy garlic','garlic flakes']},
+];
+
+function detectCombines(items) {
+  const suggestions=[];
+  for(const grp of COMBINE_GROUPS){
+    const matched=items.filter(it=>grp.members.some(m=>it.raw.toLowerCase().includes(m)||m.includes(it.raw.toLowerCase().replace(/,.*$/,'').trim())));
+    if(matched.length>=2)suggestions.push({label:grp.label,items:matched});
+  }
+  return suggestions;
+}
+
+// ============================================================
+// STEP 2: BUY LIST
+// ============================================================
 let buyItems=[];
+let combinedItems=new Set(); // keys of items that have been combined
 
-function generateBuyList() {
-  buyItems = results.filter(r=>r.status==='buy'||r.status==='low');
-  const sponsored = results.filter(r=>r.status==='sponsored');
-  const pName = document.getElementById('projectName').value||'Project';
-  const client = document.getElementById('clientName').value||'';
-  const shootDate = document.getElementById('shootDate').value||'';
+function buildBuyList() {
+  buyItems=checkResults.filter(r=>r.status==='buy'||r.status==='low');
+  const sponsored=checkResults.filter(r=>r.status==='sp');
+  combinedItems=new Set();
 
-  if (!buyItems.length && !sponsored.length) {
-    document.getElementById('buyContent').innerHTML='<div class="empty-state"><div class="big">✅</div><p>Everything is in stock!</p></div>';
-    document.getElementById('exportActions').style.display='none';
-    switchResult('buy', document.getElementById('rtab-buy')); return;
+  // Detect combine suggestions
+  const suggests=detectCombines(buyItems);
+  const sugBox=document.getElementById('combineSuggestions');
+  sugBox.innerHTML=suggests.map((s,si)=>`<div class="combine-box" id="sug-${si}">
+    💡 <strong>${s.items.map(i=>i.raw).join(' + ')}</strong> can be listed as <em>${s.label}</em>
+    <button class="btn btn-ghost btn-sm" onclick="applyCombine(${si})">Combine</button>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('sug-${si}').remove()">Dismiss</button>
+  </div>`).join('');
+
+  renderBuyList(buyItems,sponsored);
+  switchStep(2,document.getElementById('stab-2'));
+}
+
+function applyCombine(si) {
+  const suggests=detectCombines(buyItems);
+  if(!suggests[si])return;
+  const s=suggests[si];
+  // Mark those items as combined
+  s.items.forEach(it=>combinedItems.add(it.raw));
+  // Add combined item
+  buyItems.push({raw:s.label,col:'DRY GOODS',status:'buy',inv:null,combined:true});
+  document.getElementById(`sug-${si}`).remove();
+  renderBuyList(buyItems,checkResults.filter(r=>r.status==='sp'));
+}
+
+function renderBuyList(items,sponsored) {
+  const pName=document.getElementById('projectName').value||'Project';
+  const client=document.getElementById('clientName').value||'';
+  const shootDate=document.getElementById('shootDate').value||'';
+  const visibleItems=items.filter(it=>!combinedItems.has(it.raw)||it.combined);
+
+  if(!visibleItems.length&&!sponsored.length){
+    document.getElementById('buyListOut').innerHTML='<div class="empty"><div class="big">✅</div><p>Everything is in stock!</p></div>';
+    return;
   }
 
-  let html=`<div class="alert alert-info"><strong>${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''}</strong><br>${buyItems.length} item${buyItems.length!==1?'s':''} to purchase${sponsored.length?` · ${sponsored.length} client-provided`:''}</div>`;
+  let html=`<div class="alert alert-info"><strong>${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''}</strong><br>${visibleItems.length} item${visibleItems.length!==1?'s':''} to purchase</div>`;
 
-  if (buyItems.length) {
-    html+=`<div class="buy-header">To Purchase</div>`;
-    html+=buyItems.map(it=>`<div class="buy-item"><span class="buy-name">${it.raw}</span><span class="buy-stock">${it.inv?it.inv.stock+' '+it.inv.unit+' in pantry':'Not in pantry'}</span></div>`).join('');
-  }
-  if (sponsored.length) {
-    html+=`<div class="buy-header" style="background:var(--purple);margin-top:14px">⭐ Client Provided — Do Not Source</div>`;
+  // Group by column
+  const byCat={};
+  visibleItems.forEach(it=>{const k=it.col||'DRY GOODS';if(!byCat[k])byCat[k]=[];byCat[k].push(it);});
+  const colOrder=[...activeCols,...['DRY GOODS']].filter((v,i,a)=>a.indexOf(v)===i);
+  colOrder.forEach(col=>{
+    const citems=byCat[col]||[];
+    if(!citems.length)return;
+    html+=`<div class="buy-cat-header">${col}</div>`;
+    html+=citems.map(it=>`<div class="buy-item"><span class="buy-name">${it.raw}</span><span class="buy-stock">${it.inv?it.inv.stock+' '+it.inv.unit+' in pantry':it.combined?'Combined item':'Not in pantry'}</span></div>`).join('');
+  });
+
+  if(sponsored.length){
+    html+=`<div class="buy-cat-header" style="background:var(--purple);margin-top:12px">⭐ Client Provided</div>`;
+    html+=`<div class="alert alert-purple" style="margin-top:4px">These items are client-provided — do not source.</div>`;
     html+=sponsored.map(it=>`<div class="buy-item"><span class="buy-name">${it.raw}</span></div>`).join('');
   }
 
-  document.getElementById('buyContent').innerHTML=html;
-  document.getElementById('exportActions').style.display='flex';
-  document.getElementById('exportActions')._buyItems=buyItems;
-  switchResult('buy', document.getElementById('rtab-buy'));
+  document.getElementById('buyListOut').innerHTML=html;
 }
 
-// ── Export ────────────────────────────────────────────────────────────────────
-const XLSX_COLS=['VEGGIES / FRUITS','FRUITS','DAIRY / FROZEN','FRESH MEAT','SEAFOOD','DRY GOODS'];
-function guessCol(name) {
-  const n=name.toLowerCase();
-  if(/chicken|pork|beef|lamb|liempo|duck/.test(n)) return 'FRESH MEAT';
-  if(/fish|shrimp|prawn|crab|squid|salmon|mussels|kani|seafood/.test(n)) return 'SEAFOOD';
-  if(/bacon|ham|hotdog|sausage|chorizo|luncheon|corned beef/.test(n)) return 'FRESH MEAT';
-  if(/egg|milk|cream|butter|cheese|yogurt|evap|condensed/.test(n)) return 'DAIRY / FROZEN';
-  if(/frozen|edamame|peas/.test(n)) return 'DAIRY / FROZEN';
-  if(/lettuce|tomato|onion|carrot|celery|pepper|cucumber|cabbage|eggplant|potato|ginger|lemon|lime|calamansi|mango|banana|avocado|herb|basil|parsley|cilantro|spring onion|tofu|mushroom|dahon|dahon ng saging/.test(n)) return 'VEGGIES / FRUITS';
-  if(/apple|orange|grape|cherry|strawberr|blueberr|pineapple|watermelon|melon/.test(n)) return 'FRUITS';
-  return 'DRY GOODS';
-}
-
+// ============================================================
+// STEP 3: EXPORT
+// ============================================================
 async function exportXLSX(e) {
-  const items = document.getElementById('exportActions')._buyItems||[];
-  if(!items.length){alert('No items to export.');return;}
+  const items=buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
+  if(!items.length){alert('No items to export. Generate Buy List first.');return;}
   const pName=document.getElementById('projectName').value||'Project';
   const client=document.getElementById('clientName').value||'';
   const shootDate=document.getElementById('shootDate').value||'';
-  const btn=e.currentTarget; const orig=btn.textContent; btn.textContent='⏳ Generating...'; btn.disabled=true;
+  const btn=e.currentTarget;const orig=btn.textContent;btn.textContent='⏳ Generating...';btn.disabled=true;
   try {
-    const colItems={};XLSX_COLS.forEach(c=>colItems[c]=[]);
-    items.forEach(it=>colItems[guessCol(it.name)].push(it.raw));
+    const colItems={};
+    ['VEGGIES / FRUITS','FRUITS','DAIRY / FROZEN','FRESH MEAT','SEAFOOD','DRY GOODS'].forEach(c=>colItems[c]=[]);
+    items.forEach(it=>{const col=it.col||'DRY GOODS';if(colItems[col])colItems[col].push(it.raw);else colItems['DRY GOODS'].push(it.raw);});
     const resp=await fetch('https://plate-this-proxy.nilcah.workers.dev/xlsx',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project:pName,client,shootDate,colItems})});
-    if(!resp.ok) throw new Error(resp.status);
+    if(!resp.ok)throw new Error(resp.status);
     const blob=await resp.blob();
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
     a.download=`${pName.replace(/\s+/g,'-')}_${client.replace(/\s+/g,'-')}_${shootDate.replace(/[^a-zA-Z0-9]/g,'-')}.xlsx`.replace(/-+/g,'-');
     a.click();
-  } catch(err){alert('Could not generate xlsx. Try Export CSV as backup.');}
-  btn.textContent=orig; btn.disabled=false;
+  }catch(err){alert('Could not generate xlsx. Try Export CSV.');}
+  btn.textContent=orig;btn.disabled=false;
+}
+
+function exportPDF() {
+  const pName=document.getElementById('projectName').value||'Project';
+  const client=document.getElementById('clientName').value||'';
+  const shootDate=document.getElementById('shootDate').value||'';
+  const items=buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
+  const sponsored=checkResults.filter(r=>r.status==='sp');
+
+  // Group by column
+  const byCat={};
+  items.forEach(it=>{const k=it.col||'DRY GOODS';if(!byCat[k])byCat[k]=[];byCat[k].push(it.raw);});
+  const colOrder=[...activeCols,'DRY GOODS'].filter((v,i,a)=>a.indexOf(v)===i);
+
+  let body='';
+  colOrder.forEach(col=>{
+    if(!(byCat[col]||[]).length)return;
+    body+=`<div style="margin-top:16px"><div style="background:#FDC24C;color:#053E65;padding:4px 10px;font-family:Consolas,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px">${col}</div>`;
+    body+=byCat[col].map(v=>`<div style="padding:5px 10px;border-bottom:1px dashed #D8D0C4;font-size:13px">${v}</div>`).join('');
+    body+='</div>';
+  });
+  if(sponsored.length){
+    body+=`<div style="margin-top:16px"><div style="background:#6B4F8A;color:white;padding:4px 10px;font-family:Consolas,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px">⭐ CLIENT PROVIDED</div>`;
+    body+=sponsored.map(s=>`<div style="padding:5px 10px;border-bottom:1px dashed #D8D0C4;font-size:13px">${s.raw}</div>`).join('');
+    body+='</div>';
+  }
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Buy List — ${pName}</title>
+  <style>body{font-family:'IBM Plex Sans',Arial,sans-serif;padding:40px;max-width:700px;margin:0 auto;color:#1A1612;}h1{font-size:22px;margin-bottom:4px;}p{font-size:12px;color:#7A7166;margin-bottom:20px;}@media print{body{padding:20px;}}</style>
+  </head><body>
+  <h1>🍽 ${pName}</h1>
+  <p>${client?client+' · ':''}${shootDate} · ${items.length} item${items.length!==1?'s':''} to purchase</p>
+  ${body}
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
 function exportCSV() {
-  const items=document.getElementById('exportActions')._buyItems||[];
+  const items=buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
   const pName=document.getElementById('projectName').value||'Project';
   const client=document.getElementById('clientName').value||'';
   const shootDate=document.getElementById('shootDate').value||'';
-  const rows=[['Project','Client','Shoot Date','Item','Pantry Stock','Notes']];
-  items.forEach(it=>rows.push([pName,client,shootDate,it.raw,it.inv?`${it.inv.stock} ${it.inv.unit}`:'Not in pantry',it.status==='low'?'Low — check quantity':'']));
+  const rows=[['Project','Client','Shoot Date','Category','Item','Pantry Stock']];
+  items.forEach(it=>rows.push([pName,client,shootDate,it.col||'DRY GOODS',it.raw,it.inv?`${it.inv.stock} ${it.inv.unit}`:'Not in pantry']));
   const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download=`${pName.replace(/\s+/g,'-')}-buy-list.csv`; a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`${pName.replace(/\s+/g,'-')}-buy-list.csv`;a.click();
 }
 
-function copyList() {
-  const items=document.getElementById('exportActions')._buyItems||[];
+function copyText() {
+  const items=buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
   const pName=document.getElementById('projectName').value||'Project';
-  const text=`BUY LIST — ${pName}\n\n`+items.map(it=>`• ${it.raw}${it.inv?' ('+it.inv.stock+' '+it.inv.unit+' in pantry)':''}`).join('\n');
+  const byCat={};
+  items.forEach(it=>{const k=it.col||'DRY GOODS';if(!byCat[k])byCat[k]=[];byCat[k].push(it.raw);});
+  let text=`BUY LIST — ${pName}\n`;
+  [...activeCols,'DRY GOODS'].filter((v,i,a)=>a.indexOf(v)===i).forEach(col=>{
+    if(!(byCat[col]||[]).length)return;
+    text+=`\n${col}\n`+byCat[col].map(v=>`• ${v}`).join('\n')+'\n';
+  });
   navigator.clipboard.writeText(text).then(()=>alert('Copied!'));
 }
 
-// ── Result tab switching ──────────────────────────────────────────────────────
-function switchResult(tab,el) {
-  ['check','buy','pantry'].forEach(t=>{const e=document.getElementById(`rpanel-${t}`);if(e)e.style.display=t===tab?'block':'none';});
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+// ============================================================
+// STEP NAVIGATION
+// ============================================================
+function switchStep(n,el) {
+  [1,2,3].forEach(i=>{const p=document.getElementById(`spanel-${i}`);if(p)p.style.display=i===n?'block':'none';});
+  document.querySelectorAll('.step-tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
-  if(tab==='pantry')renderPantry();
 }
 
-// ── Pantry browser ────────────────────────────────────────────────────────────
-function renderPantry(catF='') {
-  const q=(document.getElementById('pantrySearch')?.value||'').toLowerCase();
-  const cats=[...new Set(INVENTORY.map(i=>i.cat))];
-  document.getElementById('pantryFilters').innerHTML=
-    `<div class="filter-chip ${!catF?'active':''}" onclick="renderPantry('')">All</div>`+
-    cats.map(c=>`<div class="filter-chip ${catF===c?'active':''}" onclick="renderPantry('${c}')">${c}</div>`).join('');
-  const visible=INVENTORY.filter(i=>(!q||i.name.toLowerCase().includes(q)||i.cat.toLowerCase().includes(q))&&(!catF||i.cat===catF));
-  const grouped={};
-  visible.forEach(i=>{if(!grouped[i.cat])grouped[i.cat]=[];grouped[i.cat].push(i);});
-  document.getElementById('pantryBrowser').innerHTML=Object.entries(grouped).map(([cat,citems])=>`
-    <div style="margin-bottom:14px">
-      <div class="section-label" style="margin-bottom:5px">${cat}</div>
-      ${citems.map(i=>`<div class="check-item ${i.stock>1?'ok':i.stock>0?'low':'buy'}" style="margin-bottom:2px">
-        <div><div class="ci-name">${i.name}</div></div>
-        <div class="ci-stock">${i.stock} ${i.unit}</div>
-        <span class="status-badge ${i.stock>1?'badge-ok':i.stock>0?'badge-low':'badge-buy'}">${i.stock>1?'In Stock':i.stock>0?'Low':'Buy'}</span>
-      </div>`).join('')}
-    </div>`).join('');
-}
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load',()=>{
+  loadInventory();
+  renderColManager();
+  renderTable();
+});
 </script>
 </body>
 </html>
