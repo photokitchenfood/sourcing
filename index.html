@@ -410,6 +410,8 @@ async function fetchWithProxy(url) {
 async function loadInventory() {
   const st = document.getElementById('invStatus');
   st.className = 'inv-st ist-idle'; st.textContent = '⬤ Loading inventory...';
+  // Save URLs to localStorage so they persist across sessions
+  try { localStorage.setItem('pt_inventory_tabs', JSON.stringify(INVENTORY_TABS)); } catch(e) {}
   try {
     const results = await Promise.allSettled(INVENTORY_TABS.map(tab => fetchWithProxy(tab.url)));
     let all = [];
@@ -620,6 +622,23 @@ function matchItem(name) {
 let checkResults=[];
 
 function runCheck() {
+  // Validate required fields
+  const pName = document.getElementById('projectName').value.trim();
+  const client = document.getElementById('clientName').value.trim();
+  const shootDate = document.getElementById('shootDate').value.trim();
+  if (!pName || !client || !shootDate) {
+    // Highlight missing fields
+    ['projectName','clientName','shootDate'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) {
+        el.style.borderColor = 'var(--accent)';
+        el.style.background = '#FEF0EA';
+        setTimeout(()=>{ el.style.borderColor=''; el.style.background=''; }, 3000);
+      }
+    });
+    alert('Please fill in Project Name, Client, and Shoot Date before checking against pantry.');
+    return;
+  }
   const items=getTableItems();
   if(!items.length){alert('Your sourcing list is empty. Add some items first.');return;}
 
@@ -812,16 +831,6 @@ function exportPDF() {
     body+='</div>';
   }
 
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Buy List — ${pName}</title>
-  <style>body{font-family:'IBM Plex Sans',Arial,sans-serif;padding:40px;max-width:700px;margin:0 auto;color:#1A1612;}h1{font-size:22px;margin-bottom:4px;}p{font-size:12px;color:#7A7166;margin-bottom:20px;}@media print{body{padding:20px;}}</style>
-  </head><body>
-  <h1>🍽 ${pName}</h1>
-  <p>${client?client+' · ':''}${shootDate} · ${items.length} item${items.length!==1?'s':''} to purchase</p>
-  ${body}
-  <script>window.onload=()=>window.print();<\/script>
-  </body></html>`);
-  win.document.close();
 }
 
 function exportCSV() {
@@ -997,8 +1006,17 @@ function exportPDF() {
     </div>`;
   }
 
-  const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head>
+  // Use hidden iframe so print dialog stays on same page
+  let iframe = document.getElementById('pt-print-frame');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = 'pt-print-frame';
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
+    document.body.appendChild(iframe);
+  }
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head>
   <title>Buy List — ${pName}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=DM+Mono:wght@400;500&display=swap');
@@ -1006,22 +1024,27 @@ function exportPDF() {
     .cover{background:#FDC24C;border-radius:8px;padding:20px 24px;margin-bottom:24px;border-bottom:3px solid #053E65;}
     .cover h1{font-size:20px;color:#053E65;margin:0 0 4px;}
     .cover p{font-size:12px;color:#053E65;opacity:.8;margin:0;}
+    .cover .day{margin-top:4px;font-weight:600;font-size:13px;color:#053E65;}
     .cat-block{margin-bottom:16px;}
     .cat-header{background:#FDC24C;color:#053E65;padding:5px 12px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;margin-bottom:4px;}
-    .sp-header{background:#6B4F8A;color:white;}
-    .item-row{padding:5px 12px;border-bottom:1px dashed #D8D0C4;font-size:13px;}
+    .sp-header{background:#6B4F8A !important;color:white !important;}
+    .item-row{padding:6px 12px;border-bottom:1px dashed #D8D0C4;font-size:13px;}
     .item-row:last-child{border-bottom:none;}
-    @media print{body{padding:20px;}@page{margin:20mm;}}
+    @media print{body{padding:20px;}@page{margin:15mm;}
+    .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .cat-header{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
   </style>
   </head><body>
   <div class="cover">
     <h1>🍽 ${pName}</h1>
-    <p>${client?client+' &middot; ':''}${shootDate} &middot; ${items.length} item${items.length!==1?'s':''} to purchase</p>
+    <p>${client?client+' &middot; ':''}${shootDate}</p>
+    <p class="day">${shootDays[activeDay].name} &middot; ${items.length} item${items.length!==1?'s':''} to purchase</p>
   </div>
   ${body}
-  <script>window.onload=()=>window.print();<\/script>
   </body></html>`);
-  win.document.close();
+  doc.close();
+  // Small delay to let fonts load, then print
+  setTimeout(() => { iframe.contentWindow.print(); }, 600);
 }
 
 // ============================================================
