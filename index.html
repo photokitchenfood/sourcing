@@ -275,7 +275,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
     </div>
     <div style="display:flex;flex-direction:column;gap:10px">
       <button class="btn btn-primary" style="padding:13px;font-size:14px" onclick="exportXLSX(event)">↓ Download xlsx</button>
-      <button class="btn btn-ghost" style="padding:11px" onclick="exportPDF()">↓ Save as PDF</button>
+      <button class="btn btn-ghost" style="padding:11px" onclick="exportPDF()">↓ Save as PDF / Print</button>
       <button class="btn btn-ghost" style="padding:11px" onclick="exportCSV()">↓ Export CSV</button>
       <button class="btn btn-ghost" style="padding:11px" onclick="copyText()">Copy as Text</button>
     </div>
@@ -464,7 +464,7 @@ function parseInvCSV(text, tabName) {
 // ============================================================
 // COLUMN MANAGEMENT
 // ============================================================
-const ALL_COLS=['VEGGIES / FRUITS','FRUITS','DAIRY / FROZEN','FRESH MEAT','SEAFOOD','DRY GOODS'];
+const ALL_COLS=['VEGGIES / FRUITS','DAIRY / FROZEN','FRESH MEAT','SEAFOOD','DRY GOODS'];
 let activeCols=[...ALL_COLS];
 let tableData=[]; // array of row objects: {starred, cells:{colName:value}}
 
@@ -621,22 +621,35 @@ function matchItem(name) {
 // ============================================================
 let checkResults=[];
 
+function showFieldError(msg) {
+  let banner = document.getElementById('field-error-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'field-error-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#C85C2A;color:white;text-align:center;padding:12px 20px;font-family:IBM Plex Sans,sans-serif;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+    document.body.appendChild(banner);
+  }
+  banner.textContent = msg;
+  banner.style.display = 'block';
+  setTimeout(() => { banner.style.display = 'none'; }, 4000);
+}
+
 function runCheck() {
   // Validate required fields
   const pName = document.getElementById('projectName').value.trim();
   const client = document.getElementById('clientName').value.trim();
   const shootDate = document.getElementById('shootDate').value.trim();
   if (!pName || !client || !shootDate) {
-    // Highlight missing fields
     ['projectName','clientName','shootDate'].forEach(id => {
       const el = document.getElementById(id);
       if (!el.value.trim()) {
         el.style.borderColor = 'var(--accent)';
         el.style.background = '#FEF0EA';
-        setTimeout(()=>{ el.style.borderColor=''; el.style.background=''; }, 3000);
+        el.placeholder = '⚠ Required';
+        setTimeout(()=>{ el.style.borderColor=''; el.style.background=''; el.placeholder=''; }, 4000);
       }
     });
-    alert('Please fill in Project Name, Client, and Shoot Date before checking against pantry.');
+    showFieldError('⚠ Please fill in Project Name, Client, and Shoot Date before checking against pantry.');
     return;
   }
   const items=getTableItems();
@@ -794,7 +807,7 @@ async function exportXLSX(e) {
   const btn=e.currentTarget;const orig=btn.textContent;btn.textContent='⏳ Generating...';btn.disabled=true;
   try {
     const colItems={};
-    ['VEGGIES / FRUITS','FRUITS','DAIRY / FROZEN','FRESH MEAT','SEAFOOD','DRY GOODS'].forEach(c=>colItems[c]=[]);
+    ['VEGGIES / FRUITS','DAIRY / FROZEN','FRESH MEAT','SEAFOOD','DRY GOODS'].forEach(c=>colItems[c]=[]);
     items.forEach(it=>{const col=it.col||'DRY GOODS';if(colItems[col])colItems[col].push(it.raw);else colItems['DRY GOODS'].push(it.raw);});
     const resp=await fetch('https://plate-this-proxy.nilcah.workers.dev/xlsx',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project:pName,client,shootDate,colItems})});
     if(!resp.ok)throw new Error(resp.status);
@@ -807,31 +820,70 @@ async function exportXLSX(e) {
 }
 
 function exportPDF() {
-  const pName=document.getElementById('projectName').value||'Project';
-  const client=document.getElementById('clientName').value||'';
-  const shootDate=document.getElementById('shootDate').value||'';
-  const items=buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
-  const sponsored=checkResults.filter(r=>r.status==='sp');
+  const items = buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
+  const sponsored = checkResults.filter(r=>r.status==='sp');
+  const pName = document.getElementById('projectName').value||'Project';
+  const client = document.getElementById('clientName').value||'';
+  const shootDate = document.getElementById('shootDate').value||'';
 
-  // Group by column
-  const byCat={};
-  items.forEach(it=>{const k=it.col||'DRY GOODS';if(!byCat[k])byCat[k]=[];byCat[k].push(it.raw);});
-  const colOrder=[...activeCols,'DRY GOODS'].filter((v,i,a)=>a.indexOf(v)===i);
+  const byCat = {};
+  items.forEach(it=>{ const k=it.col||'DRY GOODS'; if(!byCat[k])byCat[k]=[]; byCat[k].push(it.raw); });
+  const colOrder = [...activeCols,'DRY GOODS'].filter((v,i,a)=>a.indexOf(v)===i);
 
-  let body='';
-  colOrder.forEach(col=>{
-    if(!(byCat[col]||[]).length)return;
-    body+=`<div style="margin-top:16px"><div style="background:#FDC24C;color:#053E65;padding:4px 10px;font-family:Consolas,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px">${col}</div>`;
-    body+=byCat[col].map(v=>`<div style="padding:5px 10px;border-bottom:1px dashed #D8D0C4;font-size:13px">${v}</div>`).join('');
-    body+='</div>';
+  // Build print overlay on current page — no popup
+  let overlay = document.getElementById('pt-pdf-overlay');
+  if (overlay) overlay.remove();
+
+  overlay = document.createElement('div');
+  overlay.id = 'pt-pdf-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:white;z-index:99999;overflow-y:auto;padding:40px;font-family:IBM Plex Sans,sans-serif;';
+
+  let bodyHTML = `
+    <div style="background:#FDC24C;border-radius:8px;padding:20px 24px;margin-bottom:24px;border-bottom:3px solid #053E65;">
+      <h1 style="font-size:20px;color:#053E65;margin:0 0 4px;">🍽 ${pName}</h1>
+      <p style="font-size:12px;color:#053E65;opacity:.8;margin:0;">${client?client+' · ':''}${shootDate}</p>
+      <p style="margin-top:4px;font-weight:600;font-size:13px;color:#053E65;">${shootDays[activeDay].name} · ${items.length} item${items.length!==1?'s':''} to purchase</p>
+    </div>`;
+
+  colOrder.forEach(col => {
+    if (!(byCat[col]||[]).length) return;
+    bodyHTML += `<div style="margin-bottom:16px;">
+      <div style="background:#FDC24C;color:#053E65;padding:5px 12px;font-family:DM Mono,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;margin-bottom:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact;">${col}</div>
+      ${byCat[col].map(v=>`<div style="padding:6px 12px;border-bottom:1px dashed #D8D0C4;font-size:13px;">${v}</div>`).join('')}
+    </div>`;
   });
-  if(sponsored.length){
-    body+=`<div style="margin-top:16px"><div style="background:#6B4F8A;color:white;padding:4px 10px;font-family:Consolas,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px">⭐ CLIENT PROVIDED</div>`;
-    body+=sponsored.map(s=>`<div style="padding:5px 10px;border-bottom:1px dashed #D8D0C4;font-size:13px">${s.raw}</div>`).join('');
-    body+='</div>';
+
+  if (sponsored.length) {
+    bodyHTML += `<div style="margin-bottom:16px;">
+      <div style="background:#6B4F8A;color:white;padding:5px 12px;font-family:DM Mono,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;margin-bottom:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact;">⭐ CLIENT PROVIDED — DO NOT SOURCE</div>
+      ${sponsored.map(s=>`<div style="padding:6px 12px;border-bottom:1px dashed #D8D0C4;font-size:13px;">${s.raw}</div>`).join('')}
+    </div>`;
   }
 
+  overlay.innerHTML = `
+    <div style="max-width:680px;margin:0 auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;" class="no-print">
+        <span style="font-family:DM Mono,monospace;font-size:11px;color:#7A7166;">Preview — click Print / Save as PDF then close</span>
+        <div style="display:flex;gap:8px;">
+          <button onclick="window.print()" style="padding:8px 16px;background:#C85C2A;color:white;border:none;border-radius:7px;font-weight:600;cursor:pointer;font-size:13px;">🖨 Print / Save PDF</button>
+          <button onclick="document.getElementById('pt-pdf-overlay').remove()" style="padding:8px 16px;background:transparent;border:1px solid #D8D0C4;border-radius:7px;cursor:pointer;font-size:13px;">✕ Close</button>
+        </div>
+      </div>
+      ${bodyHTML}
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  // Add print styles
+  let printStyle = document.getElementById('pt-print-style');
+  if (!printStyle) {
+    printStyle = document.createElement('style');
+    printStyle.id = 'pt-print-style';
+    document.head.appendChild(printStyle);
+  }
+  printStyle.textContent = `@media print { body > *:not(#pt-pdf-overlay) { display:none !important; } #pt-pdf-overlay { position:static !important; } .no-print { display:none !important; } @page { margin:15mm; } }`;
 }
+
 
 function exportCSV() {
   const items=buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
@@ -1006,45 +1058,6 @@ function exportPDF() {
     </div>`;
   }
 
-  // Use hidden iframe so print dialog stays on same page
-  let iframe = document.getElementById('pt-print-frame');
-  if (!iframe) {
-    iframe = document.createElement('iframe');
-    iframe.id = 'pt-print-frame';
-    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
-    document.body.appendChild(iframe);
-  }
-  const doc = iframe.contentDocument || iframe.contentWindow.document;
-  doc.open();
-  doc.write(`<!DOCTYPE html><html><head>
-  <title>Buy List — ${pName}</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=DM+Mono:wght@400;500&display=swap');
-    body{font-family:'IBM Plex Sans',Arial,sans-serif;padding:40px;max-width:720px;margin:0 auto;color:#1A1612;}
-    .cover{background:#FDC24C;border-radius:8px;padding:20px 24px;margin-bottom:24px;border-bottom:3px solid #053E65;}
-    .cover h1{font-size:20px;color:#053E65;margin:0 0 4px;}
-    .cover p{font-size:12px;color:#053E65;opacity:.8;margin:0;}
-    .cover .day{margin-top:4px;font-weight:600;font-size:13px;color:#053E65;}
-    .cat-block{margin-bottom:16px;}
-    .cat-header{background:#FDC24C;color:#053E65;padding:5px 12px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;margin-bottom:4px;}
-    .sp-header{background:#6B4F8A !important;color:white !important;}
-    .item-row{padding:6px 12px;border-bottom:1px dashed #D8D0C4;font-size:13px;}
-    .item-row:last-child{border-bottom:none;}
-    @media print{body{padding:20px;}@page{margin:15mm;}
-    .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .cat-header{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
-  </style>
-  </head><body>
-  <div class="cover">
-    <h1>🍽 ${pName}</h1>
-    <p>${client?client+' &middot; ':''}${shootDate}</p>
-    <p class="day">${shootDays[activeDay].name} &middot; ${items.length} item${items.length!==1?'s':''} to purchase</p>
-  </div>
-  ${body}
-  </body></html>`);
-  doc.close();
-  // Small delay to let fonts load, then print
-  setTimeout(() => { iframe.contentWindow.print(); }, 600);
 }
 
 // ============================================================
