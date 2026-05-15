@@ -638,6 +638,7 @@ function showFieldError(msg) {
 }
 
 function runCheck() {
+  syncTableDataFromDOM(); // ensure typed values are captured
   // Validate required fields
   const pName = document.getElementById('projectName').value.trim();
   const client = document.getElementById('clientName').value.trim();
@@ -656,14 +657,20 @@ function runCheck() {
     return;
   }
   const items=getTableItems();
-  if(!items.length){alert('Your sourcing list is empty. Add some items first.');return;}
+  if(!items.length){showFieldError('⚠ Your sourcing list is empty. Add some items to the table first.');return;}
 
+  try {
   checkResults=items.map(it=>{
     if(it.starred)return{...it,status:'sp',inv:null};
     const inv=matchItem(it.raw);
     const status=!inv?'buy':inv.stock===0||inv.status==='Re-purchase needed'?'buy':inv.stock<=1?'low':'ok';
     return{...it,status,inv};
   });
+  } catch(err) {
+    showFieldError('⚠ Error during pantry check: ' + err.message);
+    console.error('runCheck error:', err);
+    return;
+  }
 
   let ok=0,low=0,buy=0;
   checkResults.forEach(r=>{if(r.status==='ok')ok++;else if(r.status==='low')low++;else if(r.status==='buy')buy++;});
@@ -829,6 +836,7 @@ function exportPDF() {
     switchStep(2, document.getElementById('stab-2'));
     return;
   }
+  try {
   const items = buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
   const sponsored = checkResults.filter(r=>r.status==='sp');
   const pName = document.getElementById('projectName').value||'Project';
@@ -891,6 +899,10 @@ function exportPDF() {
     document.head.appendChild(printStyle);
   }
   printStyle.textContent = `@media print { body > *:not(#pt-pdf-overlay) { display:none !important; } #pt-pdf-overlay { position:static !important; } .no-print { display:none !important; } @page { margin:15mm; } }`;
+  } catch(err) {
+    showFieldError('⚠ PDF export error: ' + err.message);
+    console.error('exportPDF error:', err);
+  }
 }
 
 
@@ -945,8 +957,22 @@ function renderShootTabs() {
   `<button class="shoot-tab-add" onclick="addShootDay()">+ Add Sourcing Day</button>`;
 }
 
+function syncTableDataFromDOM() {
+  // Sync any typed values from DOM back to tableData before switching
+  document.querySelectorAll('#tblBody .cell-input').forEach(el => {
+    const ri = parseInt(el.dataset.row);
+    const col = el.dataset.col;
+    if (!isNaN(ri) && col) {
+      if (!tableData[ri]) tableData[ri] = {starred:false,cells:{}};
+      tableData[ri].cells[col] = el.value;
+    }
+  });
+}
+
 function switchDay(i) {
-  // Save current day data first
+  // Sync DOM values first so nothing is lost
+  syncTableDataFromDOM();
+  // Save current day data
   shootDays[activeDay].data = JSON.parse(JSON.stringify(tableData));
   shootDays[activeDay].cols = [...activeCols];
   activeDay = i;
