@@ -153,12 +153,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
 @media(max-width:960px){.app{grid-template-columns:1fr;}.right{border-top:2px solid var(--border);}}
 
-/* MULTI-TABLE TABS */
-.shoot-tabs{display:flex;gap:3px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
-.shoot-tab{padding:5px 12px;border:1px solid var(--border);border-radius:100px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;background:white;transition:all .15s;}
-.shoot-tab.active{background:var(--blue);color:white;border-color:var(--blue);}
-.shoot-tab-add{padding:5px 12px;border:1px dashed var(--border);border-radius:100px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;}
-.shoot-tab-add:hover{border-color:var(--accent);color:var(--accent);}
+
 
 /* SAVE/LOAD BAR */
 .save-bar{background:var(--panel);border-top:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;}
@@ -199,8 +194,9 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
 <!-- LEFT: SOURCING TABLE -->
 <div class="left">
-  <div class="sec-lbl" style="margin-bottom:6px">Sourcing List — type directly into the table</div>
-  <div class="shoot-tabs" id="shootTabs"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <div class="sec-lbl" id="dayLabel" style="margin-bottom:0">SOURCING DAY 1</div>
+  </div>
 
   <!-- COLUMN MANAGER -->
   <div class="col-manager" id="colManager">
@@ -282,11 +278,11 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
     <div style="border-top:1px solid var(--border);padding-top:16px">
       <div class="sec-lbl" style="margin-bottom:10px">What's next?</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn btn-green" style="padding:12px;font-size:13px;text-align:left" onclick="finishAndSave()">
-          💾 Save &amp; Finish — save this project and clear for a new one
+        <button class="btn btn-green" style="padding:12px;font-size:13px" onclick="finishAndSave()">
+          💾 Save &amp; Finish this project
         </button>
-        <button class="btn btn-ghost" style="padding:12px;font-size:13px;text-align:left;border-color:var(--blue);color:var(--blue)" onclick="finishAndAddDay()">
-          + Add Another Sourcing Day — keep this project and start Day ${shootDays.length + 1}
+        <button class="btn btn-ghost" style="padding:12px;font-size:13px;border-color:var(--blue);color:var(--blue)" onclick="finishAndAddDay()">
+          + Add Another Sourcing Day
         </button>
       </div>
     </div>
@@ -871,7 +867,7 @@ function exportPDF() {
     <div style="background:#FDC24C;border-radius:8px;padding:20px 24px;margin-bottom:24px;border-bottom:3px solid #053E65;">
       <h1 style="font-size:20px;color:#053E65;margin:0 0 4px;">🍽 ${pName}</h1>
       <p style="font-size:12px;color:#053E65;opacity:.8;margin:0;">${client?client+' · ':''}${shootDate}</p>
-      <p style="margin-top:4px;font-weight:600;font-size:13px;color:#053E65;">${shootDays[activeDay].name} · ${items.length} item${items.length!==1?'s':''} to purchase</p>
+      <p style="margin-top:4px;font-weight:600;font-size:13px;color:#053E65;">${currentDayLabel} · ${items.length} item${items.length!==1?'s':''} to purchase</p>
     </div>`;
 
   colOrder.forEach(col => {
@@ -952,39 +948,39 @@ function switchStep(n,el) {
   if(el)el.classList.add('active');
 }
 
+function resetState() {
+  checkResults = [];
+  buyItems = [];
+  combinedItems = new Set();
+  document.getElementById('checkOut').innerHTML = '<div class="empty"><div class="big">🥕</div><p>Fill in your sourcing list and hit <strong>Check Against Pantry</strong>.</p></div>';
+  document.getElementById('summary1').style.display = 'none';
+  document.getElementById('toBuyListWrap').style.display = 'none';
+  document.getElementById('buyListOut').innerHTML = '<div class="empty"><div class="big">🛒</div><p>Complete Step 1 first.</p></div>';
+  document.getElementById('combineSuggestions').innerHTML = '';
+  document.getElementById('exportActions').style.display = 'none';
+  document.getElementById('rightSub').textContent = 'Fill in your sourcing list and hit Check Against Pantry';
+  switchStep(1, document.getElementById('stab-1'));
+}
+
 function finishAndSave() {
-  // Save project then fully reset for a new one
   saveCurrentProject(false);
   setTimeout(() => {
-    if (confirm('Project saved! Start a new project? This will clear all current data.')) {
-      // Full reset
-      shootDays = [{ name: 'Sourcing Day 1', cols: [...ALL_COLS], data: [] }];
-      activeDay = 0;
-      tableData = [];
-      activeCols = [...ALL_COLS];
-      checkResults = [];
-      buyItems = [];
-      combinedItems = new Set();
-      document.getElementById('projectName').value = '';
-      document.getElementById('clientName').value = '';
-      document.getElementById('shootDate').value = '';
-      document.getElementById('checkOut').innerHTML = '<div class="empty"><div class="big">🥕</div><p>Fill in your sourcing list and hit <strong>Check Against Pantry</strong>.</p></div>';
-      document.getElementById('summary1').style.display = 'none';
-      document.getElementById('toBuyListWrap').style.display = 'none';
-      document.getElementById('buyListOut').innerHTML = '<div class="empty"><div class="big">🛒</div><p>Complete Step 1 first.</p></div>';
-      document.getElementById('combineSuggestions').innerHTML = '';
-      document.getElementById('exportActions').style.display = 'none';
-      document.getElementById('rightSub').textContent = 'Fill in your sourcing list and hit Check Against Pantry';
-      renderShootTabs();
-      renderColManager();
-      renderTable();
-      switchStep(1, document.getElementById('stab-1'));
-    }
-  }, 500);
+    // Full reset for new project
+    tableData = [];
+    activeCols = [...ALL_COLS];
+    currentDayLabel = 'Sourcing Day 1';
+    document.getElementById('projectName').value = '';
+    document.getElementById('clientName').value = '';
+    document.getElementById('shootDate').value = '';
+    renderDayLabel();
+    renderColManager();
+    renderTable();
+    resetState();
+    showFieldError('✓ Saved! Ready for a new project.');
+  }, 300);
 }
 
 function finishAndAddDay() {
-  // Save current state then open a new sourcing day
   const pName = document.getElementById('projectName').value.trim();
   const client = document.getElementById('clientName').value.trim();
   const shootDate = document.getElementById('shootDate').value.trim();
@@ -992,32 +988,27 @@ function finishAndAddDay() {
     showFieldError('⚠ Fill in Project Name, Client, and Shoot Date first.');
     return;
   }
+  // Parse current day number and increment
+  const match = currentDayLabel.match(/\d+/);
+  const nextN = match ? parseInt(match[0]) + 1 : 2;
+  // Save current day
   syncTableDataFromDOM();
-  shootDays[activeDay].data = JSON.parse(JSON.stringify(tableData));
-  shootDays[activeDay].cols = [...activeCols];
   saveCurrentProject(true);
-  const n = shootDays.length + 1;
-  shootDays.push({ name: `Sourcing Day ${n}`, cols: [...ALL_COLS], data: [] });
-  switchDay(shootDays.length - 1);
-  showFieldError('✓ Day ' + (n-1) + ' saved. Now editing Sourcing Day ' + n + '.');
+  // Reset table for next day
+  tableData = [];
+  activeCols = [...ALL_COLS];
+  currentDayLabel = `Sourcing Day ${nextN}`;
+  renderDayLabel();
+  renderColManager();
+  renderTable();
+  resetState();
+  showFieldError(`✓ Sourcing Day ${nextN - 1} saved. Now editing Sourcing Day ${nextN}.`);
 }
 
 // ============================================================
 // INIT
 // ============================================================
-// ============================================================
-// MULTI-TABLE (SHOOT DAYS)
-// ============================================================
-let shootDays = [{ name: 'Sourcing Day 1', cols: [...ALL_COLS], data: [] }];
-let activeDay = 0;
-
-function renderShootTabs() {
-  const wrap = document.getElementById('shootTabs');
-  wrap.innerHTML = shootDays.map((d,i) => `
-    <div class="shoot-tab ${i===activeDay?'active':''}" onclick="switchDay(${i})">${d.name}</div>
-  `).join('') +
-  `<button class="shoot-tab-add" onclick="addShootDay()">+ Add Sourcing Day</button>`;
-}
+let currentDayLabel = 'Sourcing Day 1';
 
 function syncTableDataFromDOM() {
   // Sync any typed values from DOM back to tableData before switching
@@ -1031,51 +1022,19 @@ function syncTableDataFromDOM() {
   });
 }
 
-function switchDay(i) {
-  // Sync DOM values first so nothing is lost
-  syncTableDataFromDOM();
-  // Save current day data
-  shootDays[activeDay].data = JSON.parse(JSON.stringify(tableData));
-  shootDays[activeDay].cols = [...activeCols];
-  activeDay = i;
-  // Load new day
-  tableData = shootDays[i].data.length ? JSON.parse(JSON.stringify(shootDays[i].data)) : [];
-  activeCols = [...shootDays[i].cols];
-  // Reset check/buy state so Step 1 starts fresh for this day
-  checkResults = [];
-  buyItems = [];
-  combinedItems = new Set();
-  document.getElementById('checkOut').innerHTML = '<div class="empty"><div class="big">🥕</div><p>Fill in your sourcing list and hit <strong>Check Against Pantry</strong>.</p></div>';
-  document.getElementById('summary1').style.display = 'none';
-  document.getElementById('toBuyListWrap').style.display = 'none';
-  document.getElementById('buyListOut').innerHTML = '<div class="empty"><div class="big">🛒</div><p>Complete Step 1 first.</p></div>';
-  document.getElementById('combineSuggestions').innerHTML = '';
-  document.getElementById('exportActions').style.display = 'none';
-  document.getElementById('rightSub').textContent = 'Fill in your sourcing list and hit Check Against Pantry';
-  switchStep(1, document.getElementById('stab-1'));
-  renderShootTabs();
-  renderColManager();
-  renderTable();
-}
-
-function addShootDay() { finishAndAddDay(); }
-
-// ============================================================
 // LOCALSTORAGE SAVE / LOAD
 // ============================================================
 function saveCurrentProject(silent) {
   const pName = document.getElementById('projectName').value || 'Untitled Project';
   const client = document.getElementById('clientName').value || '';
   const shootDate = document.getElementById('shootDate').value || '';
-  // Sync DOM and save current day
   syncTableDataFromDOM();
-  shootDays[activeDay].data = JSON.parse(JSON.stringify(tableData));
-  shootDays[activeDay].cols = [...activeCols];
   const key = `pt_project_${Date.now()}`;
   const saved = {
-    key, label: `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''}`,
-    pName, client, shootDate, shootDays: JSON.parse(JSON.stringify(shootDays)),
-    activeDay, savedAt: new Date().toLocaleDateString()
+    key, label: `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''} (${currentDayLabel})`,
+    pName, client, shootDate, tableData: JSON.parse(JSON.stringify(tableData)),
+    activeCols: [...activeCols], currentDayLabel,
+    savedAt: new Date().toLocaleDateString()
   };
   try {
     const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
@@ -1096,14 +1055,15 @@ function loadSavedProject(key) {
     document.getElementById('projectName').value = proj.pName || '';
     document.getElementById('clientName').value = proj.client || '';
     document.getElementById('shootDate').value = proj.shootDate || '';
-    shootDays = JSON.parse(JSON.stringify(proj.shootDays));
-    activeDay = proj.activeDay || 0;
-    tableData = JSON.parse(JSON.stringify(shootDays[activeDay].data));
-    activeCols = [...shootDays[activeDay].cols];
-    renderShootTabs();
+    tableData = proj.tableData ? JSON.parse(JSON.stringify(proj.tableData)) : [];
+    activeCols = proj.activeCols ? [...proj.activeCols] : [...ALL_COLS];
+    currentDayLabel = proj.currentDayLabel || 'Sourcing Day 1';
+    renderDayLabel();
     renderColManager();
     renderTable();
-  } catch(e) { alert('Could not load saved project.'); }
+    resetState();
+    showFieldError('✓ Loaded: ' + proj.label);
+  } catch(e) { showFieldError('⚠ Could not load saved project.'); }
 }
 
 function deleteSaved(key) {
@@ -1143,14 +1103,12 @@ function renderSavedChips() {
 // ============================================================
 window.addEventListener('load',()=>{
   loadInventory();
-  // Always start fresh — reset to single day
-  shootDays = [{ name: 'Sourcing Day 1', cols: [...ALL_COLS], data: [] }];
-  activeDay = 0;
   tableData = [];
   activeCols = [...ALL_COLS];
+  currentDayLabel = 'Sourcing Day 1';
   renderColManager();
   renderTable();
-  renderShootTabs();
+  renderDayLabel();
   renderSavedChips();
 });
 </script>
