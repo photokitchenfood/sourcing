@@ -629,7 +629,8 @@ function showFieldError(msg) {
   if (!banner) {
     banner = document.createElement('div');
     banner.id = 'field-error-banner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#C85C2A;color:white;text-align:center;padding:12px 20px;font-family:IBM Plex Sans,sans-serif;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+    const isSuccess = msg.startsWith('✓');
+  banner.style.cssText = `position:fixed;top:0;left:0;right:0;z-index:9999;background:${isSuccess?'#3D6B4F':'#C85C2A'};color:white;text-align:center;padding:12px 20px;font-family:IBM Plex Sans,sans-serif;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.2);`;
     document.body.appendChild(banner);
   }
   banner.textContent = msg;
@@ -997,22 +998,40 @@ function switchDay(i) {
 }
 
 function addShootDay() {
-  // Save current
+  // Require save before adding a new day
+  const pName = document.getElementById('projectName').value.trim();
+  const client = document.getElementById('clientName').value.trim();
+  const shootDate = document.getElementById('shootDate').value.trim();
+
+  if (!pName || !client || !shootDate) {
+    showFieldError('⚠ Fill in Project Name, Client, and Shoot Date before adding a sourcing day.');
+    return;
+  }
+
+  // Auto-save current day before opening a new one
+  syncTableDataFromDOM();
   shootDays[activeDay].data = JSON.parse(JSON.stringify(tableData));
   shootDays[activeDay].cols = [...activeCols];
+
+  // Save to localStorage automatically
+  saveCurrentProject(true); // silent save
+
+  // Add new day
   const n = shootDays.length + 1;
   shootDays.push({ name: `Sourcing Day ${n}`, cols: [...ALL_COLS], data: [] });
   switchDay(shootDays.length - 1);
+  showFieldError('✓ Sourcing Day ' + (n-1) + ' saved. Now editing Sourcing Day ' + n + '.');
 }
 
 // ============================================================
 // LOCALSTORAGE SAVE / LOAD
 // ============================================================
-function saveCurrentProject() {
+function saveCurrentProject(silent) {
   const pName = document.getElementById('projectName').value || 'Untitled Project';
   const client = document.getElementById('clientName').value || '';
   const shootDate = document.getElementById('shootDate').value || '';
-  // Save current day first
+  // Sync DOM and save current day
+  syncTableDataFromDOM();
   shootDays[activeDay].data = JSON.parse(JSON.stringify(tableData));
   shootDays[activeDay].cols = [...activeCols];
   const key = `pt_project_${Date.now()}`;
@@ -1026,8 +1045,10 @@ function saveCurrentProject() {
     existing.push(saved);
     localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
     renderSavedChips();
-    alert(`✓ Saved: ${saved.label}`);
-  } catch(e) { alert('Could not save — browser storage may be full.'); }
+    if (!silent) showFieldError('✓ Project saved: ' + saved.label);
+  } catch(e) {
+    if (!silent) showFieldError('⚠ Could not save — browser storage may be full.');
+  }
 }
 
 function loadSavedProject(key) {
