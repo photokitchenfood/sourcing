@@ -530,11 +530,14 @@ function renderTable() {
       if(!tableData[ri+i]) tableData[ri+i]={starred:false,cells:{}};
       tableData[ri+i].cells[col] = line;
     });
-    tableData.push({starred:false,cells:{}});
+    // Only add trailing blank if last row isn't already blank
+    const lastRow = tableData[tableData.length-1];
+    const lastIsBlank = lastRow && Object.values(lastRow.cells||{}).every(v=>!v||!v.trim());
+    if (!lastIsBlank) tableData.push({starred:false,cells:{}});
     renderTable();
     setTimeout(()=>{
       const nextRow=document.querySelector('#row-'+(ri+lines.length));
-      if(nextRow){const cells=nextRow.querySelectorAll('.cell-input');const idx=activeCols.indexOf(col);if(cells[idx+1])cells[idx+1].focus();}
+      if(nextRow){const cells=nextRow.querySelectorAll('.cell-input');const idx=activeCols.indexOf(col);if(cells[idx])cells[idx].focus();}
     },50);
   }, {once:false});
 }
@@ -820,6 +823,12 @@ async function exportXLSX(e) {
 }
 
 function exportPDF() {
+  // Guard: must generate buy list first
+  if (!buyItems || buyItems.length === 0) {
+    showFieldError('⚠ Generate the Buy List first (Step 2) before exporting PDF.');
+    switchStep(2, document.getElementById('stab-2'));
+    return;
+  }
   const items = buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
   const sponsored = checkResults.filter(r=>r.status==='sp');
   const pName = document.getElementById('projectName').value||'Project';
@@ -937,13 +946,25 @@ function renderShootTabs() {
 }
 
 function switchDay(i) {
-  // Save current day data
+  // Save current day data first
   shootDays[activeDay].data = JSON.parse(JSON.stringify(tableData));
   shootDays[activeDay].cols = [...activeCols];
   activeDay = i;
   // Load new day
   tableData = shootDays[i].data.length ? JSON.parse(JSON.stringify(shootDays[i].data)) : [];
   activeCols = [...shootDays[i].cols];
+  // Reset check/buy state so Step 1 starts fresh for this day
+  checkResults = [];
+  buyItems = [];
+  combinedItems = new Set();
+  document.getElementById('checkOut').innerHTML = '<div class="empty"><div class="big">🥕</div><p>Fill in your sourcing list and hit <strong>Check Against Pantry</strong>.</p></div>';
+  document.getElementById('summary1').style.display = 'none';
+  document.getElementById('toBuyListWrap').style.display = 'none';
+  document.getElementById('buyListOut').innerHTML = '<div class="empty"><div class="big">🛒</div><p>Complete Step 1 first.</p></div>';
+  document.getElementById('combineSuggestions').innerHTML = '';
+  document.getElementById('exportActions').style.display = 'none';
+  document.getElementById('rightSub').textContent = 'Fill in your sourcing list and hit Check Against Pantry';
+  switchStep(1, document.getElementById('stab-1'));
   renderShootTabs();
   renderColManager();
   renderTable();
@@ -1032,33 +1053,6 @@ function renderSavedChips() {
 // ============================================================
 // PDF with yellow category headers
 // ============================================================
-function exportPDF() {
-  const items = buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
-  const sponsored = checkResults.filter(r=>r.status==='sp');
-  const pName = document.getElementById('projectName').value||'Project';
-  const client = document.getElementById('clientName').value||'';
-  const shootDate = document.getElementById('shootDate').value||'';
-
-  const byCat = {};
-  items.forEach(it=>{ const k=it.col||'DRY GOODS'; if(!byCat[k])byCat[k]=[]; byCat[k].push(it.raw); });
-  const colOrder = [...activeCols,'DRY GOODS'].filter((v,i,a)=>a.indexOf(v)===i);
-
-  let body = '';
-  colOrder.forEach(col => {
-    if(!(byCat[col]||[]).length) return;
-    body += `<div class="cat-block">
-      <div class="cat-header">${col}</div>
-      ${byCat[col].map(v=>`<div class="item-row">${v}</div>`).join('')}
-    </div>`;
-  });
-  if (sponsored.length) {
-    body += `<div class="cat-block">
-      <div class="cat-header sp-header">⭐ CLIENT PROVIDED — DO NOT SOURCE</div>
-      ${sponsored.map(s=>`<div class="item-row">${s.raw}</div>`).join('')}
-    </div>`;
-  }
-
-}
 
 // ============================================================
 // INIT
