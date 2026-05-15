@@ -152,6 +152,20 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 .note{font-size:10px;color:var(--muted);font-style:italic;margin-top:5px;}
 
 @media(max-width:960px){.app{grid-template-columns:1fr;}.right{border-top:2px solid var(--border);}}
+
+/* MULTI-TABLE TABS */
+.shoot-tabs{display:flex;gap:3px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.shoot-tab{padding:5px 12px;border:1px solid var(--border);border-radius:100px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;background:white;transition:all .15s;}
+.shoot-tab.active{background:var(--blue);color:white;border-color:var(--blue);}
+.shoot-tab-add{padding:5px 12px;border:1px dashed var(--border);border-radius:100px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;}
+.shoot-tab-add:hover{border-color:var(--accent);color:var(--accent);}
+
+/* SAVE/LOAD BAR */
+.save-bar{background:var(--panel);border-top:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;}
+.save-bar span{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.08em;}
+.saved-item{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:white;border:1px solid var(--border);border-radius:100px;font-size:11px;font-family:'DM Mono',monospace;}
+.saved-item button{background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;}
+.saved-item button:hover{color:var(--accent);}
 </style>
 </head>
 <body>
@@ -185,7 +199,8 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
 <!-- LEFT: SOURCING TABLE -->
 <div class="left">
-  <div class="sec-lbl" style="margin-bottom:10px">Sourcing List — type directly into the table</div>
+  <div class="sec-lbl" style="margin-bottom:6px">Sourcing List — type directly into the table</div>
+  <div class="shoot-tabs" id="shootTabs"></div>
 
   <!-- COLUMN MANAGER -->
   <div class="col-manager" id="colManager">
@@ -242,6 +257,10 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
   <!-- STEP 2: BUY LIST -->
   <div id="spanel-2" style="display:none">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn btn-ghost btn-sm" onclick="switchStep(1,document.getElementById('stab-1'))" style="flex:1">← Back to Pantry Check</button>
+      <button class="btn btn-primary btn-sm" onclick="buildBuyList()" style="flex:1">↺ Regenerate Buy List</button>
+    </div>
     <div id="combineSuggestions"></div>
     <div id="buyListOut">
       <div class="empty"><div class="big">🛒</div><p>Complete Step 1 first.</p></div>
@@ -264,6 +283,14 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
   </div>
 </div>
 
+</div>
+
+<!-- SAVE BAR -->
+<div class="save-bar" id="saveBar">
+  <span>SAVED LISTS:</span>
+  <div id="savedListChips"></div>
+  <button class="btn btn-ghost btn-sm" onclick="saveCurrentProject()" style="margin-left:4px">💾 Save Current Project</button>
+  <button class="btn btn-ghost btn-sm" onclick="clearSaved()" style="color:var(--accent)">Clear Saved</button>
 </div>
 
 <script>
@@ -353,31 +380,83 @@ let INVENTORY = [
 // ============================================================
 // INVENTORY SYNC
 // ============================================================
-const SAVED_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?output=csv';
+const INVENTORY_TABS = [
+  { name: 'Dry Goods: Cooking',  url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=0&single=true&output=csv' },
+  { name: 'Dry Goods: Pastry',   url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=2088949733&single=true&output=csv' },
+  { name: 'Frozen & Chilled',    url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=1119141207&single=true&output=csv' },
+  { name: 'CTG Items',           url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=1138629268&single=true&output=csv' },
+  { name: 'Studio Items: Food',  url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=1091284822&single=true&output=csv' },
+  { name: 'Studio Items: Maintenance', url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=851690462&single=true&output=csv' },
+];
 
-async function loadInventory() {
-  const st=document.getElementById('invStatus');
-  st.className='inv-st ist-idle';st.textContent='⬤ Connecting...';
-  try {
-    const proxies=[u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,u=>u];
-    let text=null;
-    for(const p of proxies){try{const r=await fetch(p(SAVED_URL));if(!r.ok)continue;const t=await r.text();if(t.trim().startsWith('<')||t.trim().startsWith('{'))continue;text=t;break;}catch(e){continue;}}
-    if(!text)throw new Error('Failed');
-    const parsed=parseInvCSV(text);
-    if(parsed.length>0){INVENTORY=parsed;st.className='inv-st ist-ok';st.textContent=`⬤ Live — ${parsed.length} items`;}
-    else throw new Error('Empty');
-  }catch(e){st.className='inv-st ist-err';st.textContent='⬤ Sync failed — using built-in inventory';}
+async function fetchWithProxy(url) {
+  const proxies = [
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => u
+  ];
+  for (const p of proxies) {
+    try {
+      const r = await fetch(p(url));
+      if (!r.ok) continue;
+      const t = await r.text();
+      if (t.trim().startsWith('<') || t.trim().startsWith('{')) continue;
+      return t;
+    } catch(e) { continue; }
+  }
+  return null;
 }
 
-function parseInvCSV(text) {
-  const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
-  function pl(line){const r=[];let c='',q=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(q&&line[i+1]==='"'){c+='"';i++;}else q=!q;}else if(ch===','&&!q){r.push(c.trim());c='';}else c+=ch;}r.push(c.trim());return r;}
-  const rows=lines.filter(l=>l.trim()).map(pl);
-  if(rows.length<2)return[];
-  const h=rows[0].map(x=>x.toLowerCase().trim());
-  const ni=h.findIndex(x=>x.includes('item')||x==='name');const ci=h.findIndex(x=>x.includes('cat'));const si=h.findIndex(x=>x.includes('stock'));const ui=h.findIndex(x=>x.includes('unit'));
-  if(ni<0)return[];
-  return rows.slice(1).filter(r=>r[ni]&&r[ni].trim()).map(r=>({name:r[ni]?.trim()||'',cat:ci>=0?r[ci]?.trim()||'General':'General',stock:parseFloat(r[si])||0,unit:ui>=0?r[ui]?.trim()||'':''}));
+async function loadInventory() {
+  const st = document.getElementById('invStatus');
+  st.className = 'inv-st ist-idle'; st.textContent = '⬤ Loading inventory...';
+  try {
+    const results = await Promise.allSettled(INVENTORY_TABS.map(tab => fetchWithProxy(tab.url)));
+    let all = [];
+    let loaded = 0;
+    results.forEach((res, i) => {
+      if (res.status === 'fulfilled' && res.value) {
+        const parsed = parseInvCSV(res.value, INVENTORY_TABS[i].name);
+        if (parsed.length > 0) { all = all.concat(parsed); loaded++; }
+      }
+    });
+    if (all.length > 0) {
+      INVENTORY = all;
+      st.className = 'inv-st ist-ok';
+      st.textContent = `⬤ Live — ${all.length} items across ${loaded}/${INVENTORY_TABS.length} tabs`;
+    } else throw new Error('No data from any tab');
+  } catch(e) {
+    st.className = 'inv-st ist-err';
+    st.textContent = '⬤ Sync failed — using built-in inventory';
+  }
+}
+
+function parseInvCSV(text, tabName) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  function pl(line) {
+    const r=[]; let c='',q=false;
+    for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(q&&line[i+1]==='"'){c+='"';i++;}else q=!q;}else if(ch===','&&!q){r.push(c.trim());c='';}else c+=ch;}
+    r.push(c.trim()); return r;
+  }
+  const rows = lines.filter(l=>l.trim()).map(pl);
+  if (rows.length < 2) return [];
+  const h = rows[0].map(x=>x.toLowerCase().trim());
+  const ni = h.findIndex(x=>x.includes('item')||x==='name'||x==='ingredient'||x==='product');
+  const ci = h.findIndex(x=>x.includes('cat')||x.includes('type')||x.includes('section'));
+  const si = h.findIndex(x=>x.includes('stock')||x.includes('qty')||x.includes('quantity'));
+  const ui = h.findIndex(x=>x.includes('unit'));
+  const sti = h.findIndex(x=>x.includes('status'));
+  if (ni < 0) return [];
+  return rows.slice(1)
+    .filter(r => r[ni] && r[ni].trim() && r[ni].trim() !== '-' && r[ni].trim() !== '')
+    .map(r => ({
+      name: r[ni]?.trim() || '',
+      cat: ci >= 0 && r[ci]?.trim() ? r[ci].trim() : (tabName || 'General'),
+      stock: si >= 0 ? (parseFloat(r[si]) || 0) : 1,
+      unit: ui >= 0 ? r[ui]?.trim() || '' : '',
+      status: sti >= 0 ? r[sti]?.trim() || 'In stock' : 'In stock',
+      tab: tabName || 'General'
+    }));
 }
 
 // ============================================================
@@ -419,7 +498,7 @@ function renderTable() {
 
   // Header
   head.innerHTML=`<tr>
-    <th style="width:32px;text-align:center">⭐</th>
+    <th style="width:44px;text-align:center;font-size:8px;line-height:1.3">CLIENT<br>PROVIDED</th>
     ${activeCols.map(c=>`<th>${c}</th>`).join('')}
   </tr>`;
 
@@ -427,7 +506,7 @@ function renderTable() {
   while(tableData.length<8)tableData.push({starred:false,cells:{}});
 
   body.innerHTML=tableData.map((row,ri)=>`<tr class="${row.starred?'starred':''}" id="row-${ri}">
-    <td class="star-cell"><button class="star-btn ${row.starred?'on':''}" onclick="toggleRowStar(${ri})" title="Mark as client-provided">⭐</button></td>
+    <td class="star-cell"><button class="star-btn ${row.starred?'on':''}" onclick="toggleRowStar(${ri})" title="⭐ Mark as client-provided (excluded from buy list)">⭐</button></td>
     ${activeCols.map(col=>`<td><textarea class="cell-input" rows="1" data-row="${ri}" data-col="${col}" placeholder="${col==='VEGGIES / FRUITS'?'e.g. Beetroot, 2pcs':col==='DAIRY / FROZEN'?'e.g. Eggs, 2 dozen':col==='FRESH MEAT'?'e.g. Chicken thigh, 1kg':col==='SEAFOOD'?'e.g. Shrimp, 500g':col==='FRUITS'?'e.g. Strawberry, 1 pack':'e.g. Brown Sugar, 2kg'}" oninput="updateCell(${ri},'${col}',this.value);autoResize(this)">${row.cells[col]||''}</textarea></td>`).join('')}
   </tr>`).join('');
 
@@ -636,10 +715,17 @@ function applyCombine(si) {
   const suggests=detectCombines(buyItems);
   if(!suggests[si])return;
   const s=suggests[si];
-  // Mark those items as combined
+  // Extract all quantities from the items being combined
+  const qtys = s.items.map(it => {
+    const m = it.raw.match(/([\d./]+)\s*([a-zA-Z]+)?/);
+    return m ? `${m[1]}${m[2]?'\u00a0'+m[2]:''}` : '';
+  }).filter(Boolean);
+  const qtyStr = qtys.length ? ` (${qtys.join(' + ')})` : '';
+  // Mark originals as combined
   s.items.forEach(it=>combinedItems.add(it.raw));
-  // Add combined item
-  buyItems.push({raw:s.label,col:'DRY GOODS',status:'buy',inv:null,combined:true});
+  // Use column of first matched item
+  const col = s.items[0]?.col || 'DRY GOODS';
+  buyItems.push({raw:`${s.label}${qtyStr}`,col,status:'buy',inv:null,combined:true});
   document.getElementById(`sug-${si}`).remove();
   renderBuyList(buyItems,checkResults.filter(r=>r.status==='sp'));
 }
@@ -775,10 +861,178 @@ function switchStep(n,el) {
 // ============================================================
 // INIT
 // ============================================================
+// ============================================================
+// MULTI-TABLE (SHOOT DAYS)
+// ============================================================
+let shootDays = [{ name: 'Sourcing Day 1', cols: [...ALL_COLS], data: [] }];
+let activeDay = 0;
+
+function renderShootTabs() {
+  const wrap = document.getElementById('shootTabs');
+  wrap.innerHTML = shootDays.map((d,i) => `
+    <div class="shoot-tab ${i===activeDay?'active':''}" onclick="switchDay(${i})">${d.name}</div>
+  `).join('') +
+  `<button class="shoot-tab-add" onclick="addShootDay()">+ Add Sourcing Day</button>`;
+}
+
+function switchDay(i) {
+  // Save current day data
+  shootDays[activeDay].data = JSON.parse(JSON.stringify(tableData));
+  shootDays[activeDay].cols = [...activeCols];
+  activeDay = i;
+  // Load new day
+  tableData = shootDays[i].data.length ? JSON.parse(JSON.stringify(shootDays[i].data)) : [];
+  activeCols = [...shootDays[i].cols];
+  renderShootTabs();
+  renderColManager();
+  renderTable();
+}
+
+function addShootDay() {
+  // Save current
+  shootDays[activeDay].data = JSON.parse(JSON.stringify(tableData));
+  shootDays[activeDay].cols = [...activeCols];
+  const n = shootDays.length + 1;
+  shootDays.push({ name: `Sourcing Day ${n}`, cols: [...ALL_COLS], data: [] });
+  switchDay(shootDays.length - 1);
+}
+
+// ============================================================
+// LOCALSTORAGE SAVE / LOAD
+// ============================================================
+function saveCurrentProject() {
+  const pName = document.getElementById('projectName').value || 'Untitled Project';
+  const client = document.getElementById('clientName').value || '';
+  const shootDate = document.getElementById('shootDate').value || '';
+  // Save current day first
+  shootDays[activeDay].data = JSON.parse(JSON.stringify(tableData));
+  shootDays[activeDay].cols = [...activeCols];
+  const key = `pt_project_${Date.now()}`;
+  const saved = {
+    key, label: `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''}`,
+    pName, client, shootDate, shootDays: JSON.parse(JSON.stringify(shootDays)),
+    activeDay, savedAt: new Date().toLocaleDateString()
+  };
+  try {
+    const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+    existing.push(saved);
+    localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
+    renderSavedChips();
+    alert(`✓ Saved: ${saved.label}`);
+  } catch(e) { alert('Could not save — browser storage may be full.'); }
+}
+
+function loadSavedProject(key) {
+  try {
+    const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+    const proj = existing.find(p => p.key === key);
+    if (!proj) return;
+    document.getElementById('projectName').value = proj.pName || '';
+    document.getElementById('clientName').value = proj.client || '';
+    document.getElementById('shootDate').value = proj.shootDate || '';
+    shootDays = JSON.parse(JSON.stringify(proj.shootDays));
+    activeDay = proj.activeDay || 0;
+    tableData = JSON.parse(JSON.stringify(shootDays[activeDay].data));
+    activeCols = [...shootDays[activeDay].cols];
+    renderShootTabs();
+    renderColManager();
+    renderTable();
+  } catch(e) { alert('Could not load saved project.'); }
+}
+
+function deleteSaved(key) {
+  try {
+    let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+    existing = existing.filter(p => p.key !== key);
+    localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
+    renderSavedChips();
+  } catch(e) {}
+}
+
+function clearSaved() {
+  if (!confirm('Clear all saved projects?')) return;
+  localStorage.removeItem('pt_saved_projects');
+  renderSavedChips();
+}
+
+function renderSavedChips() {
+  const wrap = document.getElementById('savedListChips');
+  try {
+    const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+    if (!existing.length) { wrap.innerHTML = '<span style="color:var(--muted);font-size:11px">No saved projects yet</span>'; return; }
+    wrap.innerHTML = existing.map(p => `
+      <div class="saved-item">
+        <span onclick="loadSavedProject('${p.key}')" style="cursor:pointer" title="Click to load">${p.label} <span style="opacity:.5;font-size:10px">${p.savedAt}</span></span>
+        <button onclick="deleteSaved('${p.key}')" title="Delete">×</button>
+      </div>`).join('');
+  } catch(e) { wrap.innerHTML = ''; }
+}
+
+// ============================================================
+// PDF with yellow category headers
+// ============================================================
+function exportPDF() {
+  const items = buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
+  const sponsored = checkResults.filter(r=>r.status==='sp');
+  const pName = document.getElementById('projectName').value||'Project';
+  const client = document.getElementById('clientName').value||'';
+  const shootDate = document.getElementById('shootDate').value||'';
+
+  const byCat = {};
+  items.forEach(it=>{ const k=it.col||'DRY GOODS'; if(!byCat[k])byCat[k]=[]; byCat[k].push(it.raw); });
+  const colOrder = [...activeCols,'DRY GOODS'].filter((v,i,a)=>a.indexOf(v)===i);
+
+  let body = '';
+  colOrder.forEach(col => {
+    if(!(byCat[col]||[]).length) return;
+    body += `<div class="cat-block">
+      <div class="cat-header">${col}</div>
+      ${byCat[col].map(v=>`<div class="item-row">${v}</div>`).join('')}
+    </div>`;
+  });
+  if (sponsored.length) {
+    body += `<div class="cat-block">
+      <div class="cat-header sp-header">⭐ CLIENT PROVIDED — DO NOT SOURCE</div>
+      ${sponsored.map(s=>`<div class="item-row">${s.raw}</div>`).join('')}
+    </div>`;
+  }
+
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+  <title>Buy List — ${pName}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=DM+Mono:wght@400;500&display=swap');
+    body{font-family:'IBM Plex Sans',Arial,sans-serif;padding:40px;max-width:720px;margin:0 auto;color:#1A1612;}
+    .cover{background:#FDC24C;border-radius:8px;padding:20px 24px;margin-bottom:24px;border-bottom:3px solid #053E65;}
+    .cover h1{font-size:20px;color:#053E65;margin:0 0 4px;}
+    .cover p{font-size:12px;color:#053E65;opacity:.8;margin:0;}
+    .cat-block{margin-bottom:16px;}
+    .cat-header{background:#FDC24C;color:#053E65;padding:5px 12px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;margin-bottom:4px;}
+    .sp-header{background:#6B4F8A;color:white;}
+    .item-row{padding:5px 12px;border-bottom:1px dashed #D8D0C4;font-size:13px;}
+    .item-row:last-child{border-bottom:none;}
+    @media print{body{padding:20px;}@page{margin:20mm;}}
+  </style>
+  </head><body>
+  <div class="cover">
+    <h1>🍽 ${pName}</h1>
+    <p>${client?client+' &middot; ':''}${shootDate} &middot; ${items.length} item${items.length!==1?'s':''} to purchase</p>
+  </div>
+  ${body}
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+// ============================================================
+// INIT
+// ============================================================
 window.addEventListener('load',()=>{
   loadInventory();
   renderColManager();
   renderTable();
+  renderShootTabs();
+  renderSavedChips();
 });
 </script>
 </body>
