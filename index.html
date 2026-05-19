@@ -1147,7 +1147,7 @@ function saveCurrentProject(silent) {
     const dupeIdx = existing.findIndex(p => p.label === label);
     if (dupeIdx >= 0 && !silent) {
       // Show inline prompt instead of browser confirm
-      showSaveDupePrompt(label, snapshot, dupeIdx, existing);
+      showSaveDupePrompt(label, snapshot, dupeIdx);
       return;
     }
 
@@ -1162,8 +1162,12 @@ function saveCurrentProject(silent) {
   }
 }
 
-function showSaveDupePrompt(label, snapshot, dupeIdx, existing) {
-  // Remove any existing prompt
+// Pending save stored here to avoid passing complex objects through HTML attributes
+let _pendingSave = null;
+
+function showSaveDupePrompt(label, snapshot, dupeIdx) {
+  _pendingSave = { label, snapshot, dupeIdx };
+
   const old = document.getElementById('dupe-prompt');
   if (old) old.remove();
 
@@ -1171,22 +1175,18 @@ function showSaveDupePrompt(label, snapshot, dupeIdx, existing) {
   prompt.id = 'dupe-prompt';
   prompt.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#053E65;color:white;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:IBM Plex Sans,sans-serif;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
   prompt.innerHTML = `
-    <span style="flex:1">A saved list named <strong>"${label}"</strong> already exists. Replace it or save as new?</span>
-    <button onclick="overwriteSaved(${dupeIdx})" style="padding:6px 14px;background:#FDC24C;color:#053E65;border:none;border-radius:6px;font-weight:700;cursor:pointer">Replace</button>
-    <button onclick="saveAsNew('${label.replace(/'/g,"\'")}', ${JSON.stringify(snapshot).replace(/</g,'\u003c')})" style="padding:6px 14px;background:white;color:#053E65;border:none;border-radius:6px;font-weight:700;cursor:pointer">Save as New</button>
-    <button onclick="document.getElementById('dupe-prompt').remove()" style="padding:6px 10px;background:transparent;border:1px solid rgba(255,255,255,.4);color:white;border-radius:6px;cursor:pointer">Cancel</button>`;
-
-  // Store snapshot on element for retrieval
-  prompt._snapshot = snapshot;
-  prompt._dupeIdx = dupeIdx;
+    <span style="flex:1">A saved list named <strong>"${label}"</strong> already exists.</span>
+    <button onclick="overwriteSaved()" style="padding:6px 14px;background:#FDC24C;color:#053E65;border:none;border-radius:6px;font-weight:700;cursor:pointer">Replace</button>
+    <button onclick="saveAsNew()" style="padding:6px 14px;background:white;color:#053E65;border:none;border-radius:6px;font-weight:700;cursor:pointer">Save as New</button>
+    <button onclick="document.getElementById('dupe-prompt').remove();_pendingSave=null;" style="padding:6px 10px;background:transparent;border:1px solid rgba(255,255,255,.4);color:white;border-radius:6px;cursor:pointer">Cancel</button>`;
   document.body.appendChild(prompt);
 }
 
-function overwriteSaved(dupeIdx) {
-  const prompt = document.getElementById('dupe-prompt');
-  if (!prompt) return;
-  const snapshot = prompt._snapshot;
-  const label = snapshot ? makeLabel(snapshot.pName, snapshot.client, snapshot.shootDate, snapshot.currentDayLabel) : '';
+function overwriteSaved() {
+  if (!_pendingSave) return;
+  const { label, snapshot, dupeIdx } = _pendingSave;
+  _pendingSave = null;
+  document.getElementById('dupe-prompt')?.remove();
   try {
     let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
     existing[dupeIdx] = { ...existing[dupeIdx], ...snapshot, savedAt: new Date().toLocaleDateString() };
@@ -1194,23 +1194,23 @@ function overwriteSaved(dupeIdx) {
     renderSavedChips();
     showFieldError('✓ Replaced: ' + label);
   } catch(e) { showFieldError('⚠ Could not save.'); }
-  prompt.remove();
 }
 
-function saveAsNew(originalLabel, snapshot) {
-  const prompt = document.getElementById('dupe-prompt');
-  if (prompt) prompt.remove();
+function saveAsNew() {
+  if (!_pendingSave) return;
+  const { label, snapshot } = _pendingSave;
+  _pendingSave = null;
+  document.getElementById('dupe-prompt')?.remove();
   try {
     let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
-    // Find how many versions exist and increment
-    const versionMatch = existing.filter(p => p.label.startsWith(originalLabel.replace(/ V\d+$/, '')));
-    const nextV = versionMatch.length + 1;
-    const newLabel = `${originalLabel.replace(/ V\d+$/, '')} V${nextV}`;
+    const baseLabel = label.replace(/ V\d+$/, '');
+    const vCount = existing.filter(p => p.label.replace(/ V\d+$/, '') === baseLabel).length;
+    const newLabel = `${baseLabel} V${vCount + 1}`;
     const key = `pt_project_${Date.now()}`;
     existing.push({ key, label: newLabel, ...snapshot, savedAt: new Date().toLocaleDateString() });
     localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
     renderSavedChips();
-    showFieldError('✓ Saved as new: ' + newLabel);
+    showFieldError('✓ Saved as: ' + newLabel);
   } catch(e) { showFieldError('⚠ Could not save.'); }
 }
 
