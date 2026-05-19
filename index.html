@@ -1258,7 +1258,21 @@ function loadSavedProject(key) {
     renderDayLabel();
     renderColManager();
     renderTable();
-    resetState();
+    // Reset right-panel state only — do NOT call resetState()/hardReset() as they wipe tableData
+    checkResults = [];
+    buyItems = [];
+    combinedItems = new Set();
+    stepsCompleted = { step1: false, step2: false, step3: false };
+    document.getElementById('checkOut').innerHTML = '<div class="empty"><div class="big">🥕</div><p>Table loaded — hit <strong>Check Against Pantry</strong> to run the check.</p></div>';
+    const sum1 = document.getElementById('summary1');
+    if (sum1) { sum1.style.display = 'none'; sum1.innerHTML = '<div class="tile tile-ok"><span class="tile-num">0</span><span class="tile-lbl">In Stock</span></div><div class="tile tile-low"><span class="tile-num">0</span><span class="tile-lbl">Low Stock</span></div><div class="tile tile-buy"><span class="tile-num">0</span><span class="tile-lbl">Need to Buy</span></div>'; }
+    const buyWrap = document.getElementById('toBuyListWrap'); if (buyWrap) buyWrap.style.display = 'none';
+    const buyOut = document.getElementById('buyListOut'); if (buyOut) buyOut.innerHTML = '<div class="empty"><div class="big">🛒</div><p>Complete Step 1 first.</p></div>';
+    const combSug = document.getElementById('combineSuggestions'); if (combSug) combSug.innerHTML = '';
+    const expAct = document.getElementById('exportActions'); if (expAct) expAct.style.display = 'none';
+    const sub = document.getElementById('rightSub'); if (sub) sub.textContent = 'Table loaded — hit Check Against Pantry to run the check';
+    updateAddDayButton();
+    switchStep(1, document.getElementById('stab-1'));
 
     // Clear chip highlights
     document.querySelectorAll('.saved-item').forEach(c => {
