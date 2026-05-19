@@ -255,7 +255,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
   <div id="spanel-2" style="display:none">
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <button class="btn btn-ghost btn-sm" onclick="switchStep(1,document.getElementById('stab-1'))" style="flex:1">← Back to Pantry Check</button>
-      <button class="btn btn-primary btn-sm" onclick="buildBuyList()" style="flex:1">↺ Regenerate Buy List</button>
+      <button class="btn btn-primary btn-sm" onclick="regenBuyList()" style="flex:1">↺ Regenerate Buy List</button>
     </div>
     <div id="combineSuggestions"></div>
     <div id="buyListOut">
@@ -748,6 +748,20 @@ function detectCombines(items) {
 let buyItems=[];
 let combinedItems=new Set(); // keys of items that have been combined
 
+function regenBuyList() {
+  // Re-run full pantry check from current table data, then rebuild buy list
+  syncTableDataFromDOM();
+  const items = getTableItems();
+  if (!items.length) { showFieldError('⚠ No items in the sourcing list.'); return; }
+  checkResults = items.map(it => {
+    if (it.starred) return { ...it, status:'sp', inv:null };
+    const inv = matchItem(it.raw);
+    const status = !inv ? 'buy' : inv.stock===0||inv.status==='Re-purchase needed' ? 'buy' : inv.stock<=1 ? 'low' : 'ok';
+    return { ...it, status, inv };
+  });
+  buildBuyList();
+}
+
 function buildBuyList() {
   buyItems=checkResults.filter(r=>r.status==='buy'||r.status==='low');
   const sponsored=checkResults.filter(r=>r.status==='sp');
@@ -903,18 +917,29 @@ function exportPDF() {
   ${bodyHTML}
   </body></html>`;
 
-  // Save directly to downloads as .html file (opens correctly in browser as PDF-ready)
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const filename = `${pName.replace(/\s+/g,'-')}_${currentDayLabel.replace(/\s+/g,'-')}_Buy-List.html`;
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showFieldError('✓ Buy list saved to downloads. Open the file and use File → Print → Save as PDF.');
+  // Build filename: ProjectName_ShootDate_SourcingDay#
+  const safeName = pName.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-');
+  const safeDate = shootDate.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-');
+  const safeDay = currentDayLabel.replace(/\s+/g,'');
+  const filename = `${safeName}_${safeDate}_${safeDay}`;
+
+  // Use print-to-PDF via hidden iframe — no dialog, triggers browser's built-in PDF save
+  let iframe = document.getElementById('pdf-iframe');
+  if (iframe) iframe.remove();
+  iframe = document.createElement('iframe');
+  iframe.id = 'pdf-iframe';
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
+  document.body.appendChild(iframe);
+  iframe.contentDocument.open();
+  iframe.contentDocument.write(html);
+  iframe.contentDocument.close();
+  // Set the title so "Save as PDF" dialog defaults to our filename
+  iframe.contentDocument.title = filename;
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    showFieldError('✓ PDF dialog opened. Choose "Save as PDF" and it will be named: ' + filename);
+  }, 400);
 }
 
 
@@ -955,7 +980,7 @@ function switchStep(n,el) {
 // Shared hard-reset — wipes table DOM and all state
 function hardReset(newDayLabel) {
   tableData = [];
-  activeCols = [...ALL_COLS];
+  activeCols = [...ALL_COLS];  // always restore all columns on reset
   currentDayLabel = newDayLabel || 'Sourcing Day 1';
   checkResults = [];
   buyItems = [];
@@ -970,7 +995,14 @@ function hardReset(newDayLabel) {
   const checkOut = document.getElementById('checkOut');
   if (checkOut) checkOut.innerHTML = '<div class="empty"><div class="big">🥕</div><p>Fill in your sourcing list and hit <strong>Check Against Pantry</strong>.</p></div>';
   const sum = document.getElementById('summary1');
-  if (sum) sum.style.display = 'none';
+  if (sum) {
+    sum.style.display = 'none';
+    // Clear tile numbers so stale counts don't show
+    sum.innerHTML = `
+      <div class="tile tile-ok"><span class="tile-num">0</span><span class="tile-lbl">In Stock</span></div>
+      <div class="tile tile-low"><span class="tile-num">0</span><span class="tile-lbl">Low Stock</span></div>
+      <div class="tile tile-buy"><span class="tile-num">0</span><span class="tile-lbl">Need to Buy</span></div>`;
+  }
   const buyWrap = document.getElementById('toBuyListWrap');
   if (buyWrap) buyWrap.style.display = 'none';
   const buyOut = document.getElementById('buyListOut');
