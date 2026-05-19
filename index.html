@@ -679,13 +679,14 @@ function showFieldError(msg) {
   if (!banner) {
     banner = document.createElement('div');
     banner.id = 'field-error-banner';
-    const isSuccess = msg.startsWith('✓');
-  banner.style.cssText = `position:fixed;top:0;left:0;right:0;z-index:9999;background:${isSuccess?'#3D6B4F':'#C85C2A'};color:white;text-align:center;padding:12px 20px;font-family:IBM Plex Sans,sans-serif;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.2);`;
     document.body.appendChild(banner);
   }
+  const isSuccess = msg.startsWith('✓');
+  const bg = isSuccess ? '#3D6B4F' : '#C85C2A';
+  banner.style.cssText = `position:fixed;top:0;left:0;right:0;z-index:99999;background:${bg};color:white;text-align:center;padding:14px 20px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.25);display:block;`;
   banner.textContent = msg;
-  banner.style.display = 'block';
-  setTimeout(() => { banner.style.display = 'none'; }, 4000);
+  if (banner._t) clearTimeout(banner._t);
+  banner._t = setTimeout(() => { banner.style.display = 'none'; }, 5000);
 }
 
 function runCheck() {
@@ -1265,8 +1266,13 @@ function loadSavedProject(key) {
     });
     
 
+    document.querySelector('.left').scrollTop = 0;
+    window.scrollTo(0,0);
     showFieldError('✓ Loaded: ' + proj.label);
-  } catch(e) { showFieldError('⚠ Could not load saved project.'); }
+  } catch(e) {
+    console.error('Load error:', e);
+    showFieldError('⚠ Could not load: ' + e.message);
+  }
 }
 
 function deleteSaved(key) {
