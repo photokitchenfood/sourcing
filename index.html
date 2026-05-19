@@ -31,10 +31,10 @@ header h1{font-family:'DM Serif Display',serif;font-size:19px;color:var(--blue);
 .bdiv{width:1px;height:20px;background:var(--border);}
 
 /* INVENTORY BAR */
-.inv-bar{background:var(--green-light);border-bottom:1px solid #B8DEC8;padding:7px 28px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.inv-bar span.lbl{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--green);}
+.inv-bar{background:#1c4587;border-bottom:1px solid #0f2d5e;padding:7px 28px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.inv-bar span.lbl{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#ffffff;}
 .inv-st{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;}
-.ist-ok{color:var(--green);}.ist-err{color:var(--accent);}.ist-idle{color:var(--muted);}
+.ist-ok{color:#7FFFD4;}.ist-err{color:#FFB3A7;}.ist-idle{color:rgba(255,255,255,0.6);}
 
 /* LAYOUT */
 .app{display:grid;grid-template-columns:1fr 420px;min-height:calc(100vh - 112px);}
@@ -172,26 +172,24 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
 <div class="proj-bar">
   <span class="bl">Project</span>
-  <input class="bi" id="projectName" type="text" placeholder="Project name" style="max-width:240px" autocomplete="off">
+  <input class="bi" id="projectName" type="text" placeholder="Project name" style="max-width:520px;flex:2;min-width:240px" autocomplete="off">
   <div class="bdiv"></div>
   <span class="bl">Client</span>
   <input class="bi" id="clientName" type="text" placeholder="Client name" style="max-width:170px" autocomplete="off">
   <div class="bdiv"></div>
   <span class="bl">Shoot Date</span>
-  <input class="bi" id="shootDate" type="text" placeholder="e.g. April 21, Tuesday" style="max-width:185px" autocomplete="off">
+  <input class="bi" id="shootDate" type="date" style="max-width:185px;font-family:'IBM Plex Sans',sans-serif;font-size:13px" autocomplete="off">
 </div>
 
 <!-- SAVED LISTS BAR -->
 <div class="save-bar" id="saveBar">
   <span>SAVED LISTS: <span style="font-weight:400;opacity:.6;text-transform:none;letter-spacing:0">click to select · double-click to load</span></span>
   <div id="savedListChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
-  <button class="btn btn-ghost btn-sm" onclick="saveCurrentProject()" style="margin-left:4px">💾 Save</button>
-  <button class="btn btn-ghost btn-sm" onclick="clearSaved()" style="color:var(--accent)">Clear All</button>
 </div>
 
 <div class="inv-bar">
-  <span>📊</span>
-  <span class="lbl">Pantry Inventory</span>
+  <span>🧺</span>
+  <span class="lbl" style="color:#ffffff">Pantry Inventory</span>
   <span class="inv-st ist-idle" id="invStatus">⬤ Loading...</span>
 </div>
 
@@ -213,7 +211,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
       </select>
     </div>
   </div>
-  <p class="note" style="margin-bottom:10px">★ Click × on any column header to hide it. Hit <strong>Check Against Pantry</strong> any time to refresh all results.</p>
+  <p class="note" style="margin-bottom:10px">★ Click × on any column header to hide it. Hit <strong>Check Against Pantry</strong> any time to refresh. <span style="color:var(--accent)">⚠ Use the same units as your Pantry Inventory (e.g. pcs, pack, bottle, kg) for accurate cross-checking.</span></p>
 
   <!-- TABLE -->
   <div class="tbl-wrap">
@@ -300,8 +298,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 </div>
 
 <!-- SAVE BAR -->
-  <button class="btn btn-ghost btn-sm" onclick="saveCurrentProject()" style="margin-left:4px">💾 Save Current Project</button>
-  <button class="btn btn-ghost btn-sm" onclick="clearSaved()" style="color:var(--accent)">Clear Saved</button>
+
 </div>
 
 <script>

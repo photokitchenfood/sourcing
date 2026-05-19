@@ -398,7 +398,7 @@ Rules:
       <div class="field-desc">The brand or client name. <em>e.g. Unilever Philippines</em></div>
 
       <div class="field-label">Shoot Date</div>
-      <div class="field-desc">Date and day of shoot. <em>e.g. April 21, Tuesday</em> — this becomes the tab name in your Google Sheet.</div>
+      <div class="field-desc">Pick the shoot date from the calendar — the date picker opens when you click the field. This becomes the tab name in your exported file.</div>
     </div>
 
     <div class="note note-orange">
@@ -449,32 +449,30 @@ Rules:
   <!-- STEP 4 -->
   <div class="section">
     <div class="section-number">Step 04</div>
-    <h2>Review the recipe card — mark sponsored items</h2>
+    <h2>Set up your sourcing table</h2>
     <p>The recipe card shows every ingredient with its auto-detected category and scaled quantity. Two things to do here before generating the master list:</p>
+
+    <div class="note note-orange">
+      <strong>⚠ Use the same units as your Pantry Inventory</strong>
+      For accurate cross-checking, write quantities using the same units that appear in the Plate This pantry sheet — e.g. <strong>pcs, pack, bottle, kg, can, jar</strong>. If the units don't match, the tool may not recognise the item as in-stock.
+    </div>
 
     <div class="steps">
       <div class="step">
         <div class="step-num">1</div>
         <div class="step-body">
-          <div class="step-title">Mark sponsored / brand items with ⭐</div>
-          <p class="step-desc">Any ingredient that is the <strong>client's product</strong> (e.g. Lady's Choice Real Mayonnaise for a Unilever shoot) should be starred. Click the <strong>⭐ icon</strong> on that row. Starred items are tracked under the <strong>Client Provided</strong> tab and are <strong>automatically excluded</strong> from the buy list — the client supplies these directly.</p>
+          <div class="step-title">Type or paste your sourcing list into the table</div>
+          <p class="step-desc">Each column matches a sourcing category — VEGGIES / FRUITS, DAIRY / FROZEN, FRESH MEAT, SEAFOOD, DRY GOODS. Type one item per row. You can also paste a list of items into any column and they will auto-fill one item per row.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">2</div>
         <div class="step-body">
-          <div class="step-title">Fix any wrong categories</div>
-          <p class="step-desc">Click the <strong>✎ pencil icon</strong> on any row to edit the ingredient name, quantity, unit, multiplier, or category. The category dropdown contains the full list of pantry subcategories — make sure each item is in the right one so the buy list groups correctly.</p>
+          <div class="step-title">Remove columns you don't need</div>
+          <p class="step-desc">Click <strong>×</strong> on any column header to hide it for this shoot. You can add it back using the <strong>+ Add column</strong> dropdown.</p>
         </div>
       </div>
     </div>
-
-    <div class="note note-purple">
-      <strong>⭐ About sponsored items</strong>
-      Sponsored items appear only in the Client Provided tab — they never show up in the Master List or Buy List. This keeps your sourcing list clean and prevents the team from accidentally purchasing items the client is already providing.
-    </div>
-
-    <p>If you have more than one recipe for the same project, paste each one in and hit Parse for each. They all stack into the same master list.</p>
   </div>
 
   <hr class="divider">
@@ -584,7 +582,7 @@ Rules:
         <div class="step-num">1</div>
         <div class="step-body">
           <div class="step-title">Claude or ChatGPT — extract ingredients</div>
-          <p class="step-desc">Use the extraction prompt + attach recipe file → copy the AI's output</p>
+          <p class="step-desc">Use the extraction prompt + attach recipe file → copy the AI's output (optional — you can also type your list directly into the tool)</p>
         </div>
       </div>
       <div class="step">
@@ -604,7 +602,7 @@ Rules:
       <div class="step">
         <div class="step-num">4</div>
         <div class="step-body">
-          <div class="step-title">Review recipe card → ⭐ star brand items → fix categories</div>
+          <div class="step-title">Type your sourcing list into the table by category</div>
           <p class="step-desc">Starred items go to Client Provided tab and are excluded from sourcing</p>
         </div>
       </div>
