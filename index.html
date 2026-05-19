@@ -518,11 +518,21 @@ function renderTable() {
 
   body.innerHTML=tableData.map((row,ri)=>`<tr class="${row.starred?'starred':''}" id="row-${ri}">
     <td class="star-cell"><button class="star-btn ${row.starred?'on':''}" onclick="toggleRowStar(${ri})" title="⭐ Mark as client-provided (excluded from buy list)">⭐</button></td>
-    ${activeCols.map(col=>`<td><textarea class="cell-input" rows="1" data-row="${ri}" data-col="${col}" placeholder="${col==='VEGGIES / FRUITS'?'e.g. Beetroot, 2pcs':col==='DAIRY / FROZEN'?'e.g. Eggs, 2 dozen':col==='FRESH MEAT'?'e.g. Chicken thigh, 1kg':col==='SEAFOOD'?'e.g. Shrimp, 500g':col==='FRUITS'?'e.g. Strawberry, 1 pack':'e.g. Brown Sugar, 2kg'}" oninput="updateCell(${ri},'${col}',this.value);autoResize(this)">${row.cells[col]||''}</textarea></td>`).join('')}
+    ${activeCols.map(col=>{
+      const ph=col==='VEGGIES / FRUITS'?'e.g. Beetroot, 2pcs':col==='DAIRY / FROZEN'?'e.g. Eggs, 2 dozen':col==='FRESH MEAT'?'e.g. Chicken thigh, 1kg':col==='SEAFOOD'?'e.g. Shrimp, 500g':'e.g. Brown Sugar, 2kg';
+      return `<td><textarea class="cell-input" rows="1" data-row="${ri}" data-col="${col}" placeholder="${ph}">${row.cells[col]||''}</textarea></td>`;
+    }).join('')}
   </tr>`).join('');
 
   // Auto resize all textareas
-  body.querySelectorAll('.cell-input').forEach(t=>autoResize(t));
+  body.querySelectorAll('.cell-input').forEach(t=>{
+    autoResize(t);
+    // Wire input via addEventListener so col names with / don't break inline handlers
+    t.addEventListener('input', function() {
+      const ri=parseInt(this.dataset.row); const col=this.dataset.col;
+      updateCell(ri,col,this.value); autoResize(this);
+    });
+  });
 
   // Delegated paste handler — avoids broken inline attributes with special chars in col names
   body.addEventListener('paste', function(e) {
@@ -559,8 +569,34 @@ function autoResize(el) {
 function updateCell(ri,col,val) {
   if(!tableData[ri])tableData[ri]={starred:false,cells:{}};
   tableData[ri].cells[col]=val;
-  // Auto-add row if last row is being filled
-  if(ri===tableData.length-1&&val.trim()){tableData.push({starred:false,cells:{}});renderTable();}
+  // Auto-add row without re-rendering (re-render wipes in-progress edits)
+  if(ri===tableData.length-1&&val.trim()){
+    tableData.push({starred:false,cells:{}});
+    // Append a single blank row to DOM instead of full re-render
+    const tbody=document.getElementById('tblBody');
+    const newRi=tableData.length-1;
+    const tr=document.createElement('tr');
+    tr.id=`row-${newRi}`;
+    // star cell
+    const starTd=document.createElement('td');
+    starTd.className='star-cell';
+    starTd.innerHTML=`<button class="star-btn" onclick="toggleRowStar(${newRi})" title="Mark as client-provided">⭐</button>`;
+    tr.appendChild(starTd);
+    activeCols.forEach(col=>{
+      const td=document.createElement('td');
+      const ph=col==='VEGGIES / FRUITS'?'e.g. Beetroot, 2pcs':col==='DAIRY / FROZEN'?'e.g. Eggs, 2 dozen':col==='FRESH MEAT'?'e.g. Chicken thigh, 1kg':col==='SEAFOOD'?'e.g. Shrimp, 500g':'e.g. Brown Sugar, 2kg';
+      const ta=document.createElement('textarea');
+      ta.className='cell-input'; ta.rows=1;
+      ta.dataset.row=newRi; ta.dataset.col=col;
+      ta.placeholder=ph;
+      ta.addEventListener('input',function(){updateCell(newRi,col,this.value);autoResize(this);});
+      tbody.querySelectorAll('.cell-input').forEach(el=>{
+        el.addEventListener('paste',pasteHandler);
+      });
+      td.appendChild(ta); tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
 }
 
 
