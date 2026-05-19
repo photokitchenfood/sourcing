@@ -208,7 +208,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
       </select>
     </div>
   </div>
-  <p class="note" style="margin-bottom:10px">★ Click × on any column header to hide it. Use ⭐ to mark client-provided items — they won't appear in your buy list.</p>
+  <p class="note" style="margin-bottom:10px">★ Click × on any column header to hide it. Use ⭐ to mark client-provided items. Hit <strong>Check Against Pantry</strong> any time to refresh all results.</p>
 
   <!-- TABLE -->
   <div class="tbl-wrap">
@@ -253,9 +253,8 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
   <!-- STEP 2: BUY LIST -->
   <div id="spanel-2" style="display:none">
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <button class="btn btn-ghost btn-sm" onclick="switchStep(1,document.getElementById('stab-1'))" style="flex:1">← Back to Pantry Check</button>
-      <button class="btn btn-primary btn-sm" onclick="regenBuyList()" style="flex:1">↺ Regenerate Buy List</button>
+    <div style="margin-bottom:10px">
+      <button class="btn btn-ghost btn-sm" onclick="switchStep(1,document.getElementById('stab-1'))">← Back to Pantry Check</button>
     </div>
     <div id="combineSuggestions"></div>
     <div id="buyListOut">
@@ -649,7 +648,8 @@ function showFieldError(msg) {
 }
 
 function runCheck() {
-  syncTableDataFromDOM(); // ensure typed values are captured
+  // Always sync DOM first — captures any edits typed directly into cells
+  syncTableDataFromDOM();
   // Validate required fields
   const pName = document.getElementById('projectName').value.trim();
   const client = document.getElementById('clientName').value.trim();
@@ -719,6 +719,8 @@ function runCheck() {
   stepsCompleted.step1 = true;
   updateAddDayButton();
   switchStep(1,document.getElementById('stab-1'));
+  // Auto-rebuild buy list so Step 2 is always in sync with current check
+  buildBuyList();
 }
 
 // ============================================================
@@ -747,20 +749,6 @@ function detectCombines(items) {
 // ============================================================
 let buyItems=[];
 let combinedItems=new Set(); // keys of items that have been combined
-
-function regenBuyList() {
-  // Re-run full pantry check from current table data, then rebuild buy list
-  syncTableDataFromDOM();
-  const items = getTableItems();
-  if (!items.length) { showFieldError('⚠ No items in the sourcing list.'); return; }
-  checkResults = items.map(it => {
-    if (it.starred) return { ...it, status:'sp', inv:null };
-    const inv = matchItem(it.raw);
-    const status = !inv ? 'buy' : inv.stock===0||inv.status==='Re-purchase needed' ? 'buy' : inv.stock<=1 ? 'low' : 'ok';
-    return { ...it, status, inv };
-  });
-  buildBuyList();
-}
 
 function buildBuyList() {
   buyItems=checkResults.filter(r=>r.status==='buy'||r.status==='low');
