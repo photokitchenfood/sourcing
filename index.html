@@ -156,7 +156,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
 
 /* SAVE/LOAD BAR */
-.save-bar{background:var(--panel);border-top:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;}
+.save-bar{background:var(--panel);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;}
 .save-bar span{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.08em;}
 .saved-item{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:white;border:1px solid var(--border);border-radius:100px;font-size:11px;font-family:'DM Mono',monospace;}
 .saved-item button{background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;}
@@ -182,6 +182,14 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
   <div class="bdiv"></div>
   <span class="bl">Shoot Date</span>
   <input class="bi" id="shootDate" type="text" placeholder="e.g. April 21, Tuesday" style="max-width:185px" autocomplete="off">
+</div>
+
+<!-- SAVED LISTS BAR -->
+<div class="save-bar" id="saveBar">
+  <span>SAVED LISTS:</span>
+  <div id="savedListChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+  <button class="btn btn-ghost btn-sm" onclick="saveCurrentProject()" style="margin-left:4px">💾 Save</button>
+  <button class="btn btn-ghost btn-sm" onclick="clearSaved()" style="color:var(--accent)">Clear All</button>
 </div>
 
 <div class="inv-bar">
@@ -295,9 +303,6 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 </div>
 
 <!-- SAVE BAR -->
-<div class="save-bar" id="saveBar">
-  <span>SAVED LISTS:</span>
-  <div id="savedListChips"></div>
   <button class="btn btn-ghost btn-sm" onclick="saveCurrentProject()" style="margin-left:4px">💾 Save Current Project</button>
   <button class="btn btn-ghost btn-sm" onclick="clearSaved()" style="color:var(--accent)">Clear Saved</button>
 </div>
@@ -916,18 +921,40 @@ function exportPDF() {
     </div>`;
   }
 
+  // Build filename: ProjectName_ShootDate_SourcingDayN
+  const safeName = pName.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const safeDate = shootDate.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const safeDay = currentDayLabel.replace(/\s+/g, '');
+
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${safeName}_${safeDate}_${safeDay}</title>
   <style>
-    body{font-family:Arial,sans-serif;padding:32px;max-width:680px;margin:0 auto;color:#1A1612;}
-    .cover{background:#FDC24C;border-radius:6px;padding:18px 22px;margin-bottom:20px;border-bottom:3px solid #053E65;}
-    .cover h1{font-size:18px;color:#053E65;margin:0 0 4px;font-weight:700;}
-    .cover p{font-size:11px;color:#053E65;margin:2px 0;}
-    .cat-block{margin-bottom:14px;}
-    .cat-hdr{background:#FDC24C;color:#053E65;padding:4px 10px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:3px;margin-bottom:3px;}
-    .sp-hdr{background:#6B4F8A!important;color:white!important;}
-    .item-row{padding:5px 10px;border-bottom:1px dashed #D8D0C4;font-size:12px;}
-    .item-row:last-child{border-bottom:none;}
+    @page { size: A4; margin: 15mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 0; margin: 0; color: #1A1612; font-size: 12px; }
+    .cover { background: #FDC24C; padding: 16px 20px; margin-bottom: 18px; border-bottom: 3px solid #053E65; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .cover h1 { font-size: 17px; color: #053E65; margin: 0 0 3px; font-weight: 700; }
+    .cover p { font-size: 11px; color: #053E65; margin: 2px 0; }
+    .cat-block { margin-bottom: 12px; page-break-inside: avoid; }
+    .cat-hdr { background: #FDC24C; color: #053E65; padding: 4px 10px; font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; border-radius: 3px; margin-bottom: 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .sp-hdr { background: #6B4F8A !important; color: white !important; }
+    .item-row { padding: 4px 10px; border-bottom: 1px dashed #D8D0C4; font-size: 12px; }
+    .item-row:last-child { border-bottom: none; }
+    .no-print { display: none; }
+    @media screen {
+      body { padding: 20px; max-width: 680px; margin: 0 auto; }
+      .no-print { display: flex; justify-content: space-between; align-items: center; padding: 10px 0 16px; gap: 10px; }
+      .print-btn { padding: 8px 20px; background: #C85C2A; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+      .close-btn { padding: 8px 16px; background: transparent; border: 1px solid #D8D0C4; border-radius: 6px; font-size: 13px; cursor: pointer; }
+    }
   </style></head><body>
+  <div class="no-print">
+    <span style="font-size:12px;color:#7A7166;">Print or save as PDF below</span>
+    <div>
+      <button class="print-btn" onclick="window.print()">🖨 Save as PDF / Print</button>
+      <button class="close-btn" onclick="window.close()">✕ Close</button>
+    </div>
+  </div>
   <div class="cover">
     <h1>🍽 ${pName}</h1>
     <p>${client ? client + ' · ' : ''}${shootDate}</p>
@@ -936,21 +963,19 @@ function exportPDF() {
   ${bodyHTML}
   </body></html>`;
 
-  // Build filename
-  const safeName = pName.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
-  const safeDate = shootDate.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
-  const safeDay = currentDayLabel.replace(/\s+/g,'');
-  const filename = `${safeName}_${safeDate}_${safeDay}.html`;
-
-  // Download directly to Downloads — no dialog
+  // Open in new tab — user clicks Save as PDF, file saves as correct name
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  showFieldError('✓ Saved to Downloads: ' + filename + ' — open it in browser, then File → Print → Save as PDF');
+  const newTab = window.open(url, '_blank');
+  if (!newTab) {
+    // Fallback: download as html if popup blocked
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeName}_${safeDate}_${safeDay}.html`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    showFieldError('✓ Downloaded. Open the file in your browser then File → Print → Save as PDF');
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 
