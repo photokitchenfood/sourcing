@@ -293,10 +293,10 @@
 <div class="cover">
   <div class="cover-eyebrow">Plate This: Sourcing Tool</div>
   <h1>HOW TO USE</h1>
-  <p class="cover-sub">A step-by-step guide for food stylists — from extracting recipe ingredients using Claude or ChatGPT, to downloading your final buy list.</p>
+  <p class="cover-sub">A step-by-step guide for food stylists — from building your sourcing list to exporting a formatted buy list ready for the market run.</p>
   <div class="cover-meta">
-    <span>Tool: photokitchenfood.github.io</span>
-    <span>Platform: Claude.ai or ChatGPT + Plate This Sourcing Tool</span>
+    <span>Plate This · Food Styling Pre-Production</span>
+    <span>Tool: photokitchenfood.github.io/sourcing</span>
   </div>
 </div>
 
@@ -305,12 +305,15 @@
   <!-- OVERVIEW -->
   <div class="section">
     <div class="section-number">Overview</div>
-    <h2>How the workflow works</h2>
-    <p>The sourcing tool is split into two parts that work together. First, you use <strong>Claude or ChatGPT</strong> to read a recipe image or document and extract a clean ingredient list. Then you paste that into the <strong>Plate This Sourcing Tool</strong> which scales the quantities, checks against your live pantry inventory, and generates a formatted buy list you can export directly into your Google Sheet.</p>
-
+    <h2>What this tool does</h2>
+    <p>The Plate This Sourcing Calculator is a pantry cross-check tool. You type your sourcing list directly into the table — exactly how your team writes it — and the tool checks each item against the live Plate This pantry inventory. It tells you what's already in stock, what's running low, and what needs to be purchased. Then you export a formatted buy list.</p>
     <div class="note note-green">
-      <strong>🔗 Pantry inventory is live</strong>
-      The tool connects directly to your Plate This pantry Google Sheet every time it loads. Stock levels are always up to date — no manual syncing needed.
+      <strong>🔗 Pantry inventory is always live</strong>
+      The tool connects directly to the Plate This pantry Google Sheet every time it loads. Stock levels are always up to date — no manual syncing needed.
+    </div>
+    <div class="note note-orange">
+      <strong>⚠ Use pantry units for accurate results</strong>
+      Write quantities using the same units that appear in the pantry sheet — e.g. <strong>pcs, pack, bottle, kg, can, jar, bundle</strong>. Matching units helps the tool correctly identify what's in stock.
     </div>
   </div>
 
@@ -319,76 +322,8 @@
   <!-- STEP 1 -->
   <div class="section">
     <div class="section-number">Step 01</div>
-    <h2>Extract the recipe using an AI tool</h2>
-    <p>Open any AI chat tool — <strong>Claude.ai</strong> or <strong>ChatGPT</strong> both work. Use the prompt below — save it somewhere accessible for easy reuse. Attach your recipe file (image, PDF, or pre-pro slide) and send.</p>
-    <div class="note note-green">
-      <strong>✓ Works with both Claude and ChatGPT</strong>
-      Use whichever you have access to. Both can read images, PDFs, and text. The extraction prompt works the same way on either platform.
-    </div>
-
-    <div class="code-block"><span class="hl">EXTRACTION PROMPT — copy and use this every time:</span>
-
-You are a food styling assistant for a production company called Plate This.
-
-Look at everything provided — this could be a recipe document, a pre-production slide, a photo of a dish, a PPM deck, or any combination. Your job is to extract a complete and practical ingredient list that the food styling team can use to source and prepare this dish for a photoshoot or videoshoot.
-
-Use all available clues: ingredient lists, dish descriptions, food styling notes, visible components in the photo, garnishes, sauces, serveware context, and any written notes on the slide.
-
-Output format:
-DISH NAME: [name of the dish]
-ORIGINAL SERVINGS: [number, or write "not specified"]
-
-INGREDIENTS:
-- [quantity] [unit] [ingredient name] (prep note if any)
-
-Rules:
-- List every ingredient including garnishes, toppings, sauces, and bread/base
-- If quantity is not stated, make a reasonable estimate for 1 serving, note as (estimated)
-- Use decimal numbers (0.5 not ½)
-- Keep ingredient names simple and clear
-- Flag brand name products with (BRAND ITEM)
-- If something is visible in the photo but not listed, include it and mark (from image)
-- Do not include cooking instructions — ingredients only</div>
-
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-body">
-          <div class="step-title">Attach your recipe source</div>
-          <p class="step-desc">You can attach a <strong>photo, screenshot, PDF, or pre-pro slide</strong>. If you have multiple pages for the same dish, attach all of them together — Claude will treat them as one recipe.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-body">
-          <div class="step-title">Paste the prompt and send</div>
-          <p class="step-desc">Paste the extraction prompt above into the chat along with your file. The AI will return a formatted ingredient list.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-body">
-          <div class="step-title">Review the output</div>
-          <p class="step-desc">Check that all ingredients are listed correctly. Any item flagged as <strong>(BRAND ITEM)</strong> is a client's product — you'll mark those as sponsored in the tool.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">4</div>
-        <div class="step-body">
-          <div class="step-title">Copy the full output</div>
-          <p class="step-desc">Select and copy everything the AI returned — dish name, servings, and the full ingredient list.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <hr class="divider">
-
-  <!-- STEP 2 -->
-  <div class="section">
-    <div class="section-number">Step 02</div>
-    <h2>Open the Sourcing Tool and fill in project details</h2>
-    <p>Go to <strong>photokitchenfood.github.io</strong>. Before doing anything else, fill in the three fields at the top of the page. These are required — they appear in your exported file.</p>
+    <h2>Fill in project details</h2>
+    <p>Open <strong>photokitchenfood.github.io/sourcing</strong>. Before doing anything else, fill in the three fields at the top of the page.</p>
 
     <div class="field-row">
       <div class="field-label">Project Name</div>
@@ -398,12 +333,62 @@ Rules:
       <div class="field-desc">The brand or client name. <em>e.g. Unilever Philippines</em></div>
 
       <div class="field-label">Shoot Date</div>
-      <div class="field-desc">Pick the shoot date from the calendar — the date picker opens when you click the field. This becomes the tab name in your exported file.</div>
+      <div class="field-desc">Click the field to open the calendar and pick the shoot date. This becomes the filename and tab name when you export.</div>
     </div>
 
     <div class="note note-orange">
-      <strong>⚠ Don't skip these fields</strong>
-      The Shoot Date field is used as the tab name when you import into Google Sheets. If it's blank, the tab will be unnamed and hard to find later.
+      <strong>⚠ These fields are required</strong>
+      The tool will not run the pantry check unless all three are filled in.
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- STEP 2 -->
+  <div class="section">
+    <div class="section-number">Step 02</div>
+    <h2>Type your sourcing list into the table</h2>
+    <p>The table has five columns matching the sourcing categories your team already uses. Type one item per row in any column — exactly how you'd write it in your Google Sheet.</p>
+
+    <div class="field-row">
+      <div class="field-label">VEGGIES / FRUITS</div>
+      <div class="field-desc">Fresh produce, herbs, fruits. <em>e.g. Beetroot, 2pcs · Cilantro, 2 packs · Orange, 3pcs</em></div>
+
+      <div class="field-label">DAIRY / FROZEN</div>
+      <div class="field-desc">Eggs, milk, cream, cheese, frozen items. <em>e.g. Eggs, 2 dozen</em></div>
+
+      <div class="field-label">FRESH MEAT</div>
+      <div class="field-desc">Meat, poultry, processed meats. <em>e.g. Chicken thigh fillet, 1kg</em></div>
+
+      <div class="field-label">SEAFOOD</div>
+      <div class="field-desc">Fish, shrimp, shellfish. <em>e.g. Shrimp, 500g</em></div>
+
+      <div class="field-label">DRY GOODS</div>
+      <div class="field-desc">Pantry staples, condiments, baking items. <em>e.g. Brown Sugar, 2kg · Cooking Oil, 2 bottles</em></div>
+    </div>
+
+    <div class="steps" style="margin-top:16px">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Remove columns you don't need</div>
+          <p class="step-desc">Click <strong>×</strong> on any column header to hide it for this shoot. Use <strong>+ Add column</strong> to bring it back.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Write manually or paste — both work</div>
+          <p class="step-desc">Type items one by one, or copy a list from your notes and paste into any column cell. Each line automatically drops into its own row.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Add more rows if needed</div>
+          <p class="step-desc">The table adds rows automatically as you fill the last one. You can also click <strong>+ Add Row</strong> at the bottom.</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -412,35 +397,29 @@ Rules:
   <!-- STEP 3 -->
   <div class="section">
     <div class="section-number">Step 03</div>
-    <h2>Paste the recipe and set scaling</h2>
+    <h2>Check Against Pantry</h2>
+    <p>Once your sourcing list is ready, hit the big orange button:</p>
 
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-body">
-          <div class="step-title">Paste the extracted recipe text</div>
-          <p class="step-desc">In the left panel, paste the Claude output into the recipe text area. The tool reads the dish name and ingredient list automatically.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-body">
-          <div class="step-title">Set your scaling</div>
-          <p class="step-desc">
-            <strong>Number of Takes</strong> — how many full batches the food styling team needs to prepare.<br>
-            Recommended: <strong>3 takes minimum for photoshoots</strong>, <strong>5 takes minimum for videoshoots</strong>.<br><br>
-            <strong>Meat Buffer</strong> (optional) — if meat portions need a different multiplier from takes.<br>
-            <strong>Fresh Produce Buffer</strong> (optional) — if fresh items need a different multiplier.
-          </p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-body">
-          <div class="step-title">Hit Parse & Scale Recipe</div>
-          <p class="step-desc">The recipe card appears below with all ingredients, their categories, original quantities, and scaled quantities. Review everything before moving on.</p>
-        </div>
-      </div>
+    <div class="ui-row">
+      <span class="ui-badge badge-orange">✦ Check Against Pantry →</span>
+    </div>
+
+    <p>The right panel switches to <strong>Step 1 — Pantry Check</strong> and shows every item with a status badge:</p>
+
+    <div class="ui-row">
+      <span class="ui-badge badge-green">In Stock</span>
+      <span class="ui-badge badge-gold">Low Stock</span>
+      <span class="ui-badge badge-orange">Buy</span>
+    </div>
+
+    <div class="note note-orange">
+      <strong>Low Stock and not found = automatically added to Buy List</strong>
+      Items flagged as <strong>Low Stock</strong> or not found in the pantry at all are automatically included in the Buy List when you generate it in Step 2. The team doesn't need to manually add these — the tool handles it.
+    </div>
+
+    <div class="note note-green">
+      <strong>You can re-run this anytime</strong>
+      Made a change to the table? Just hit Check Against Pantry again — it always reads the latest values from the table.
     </div>
   </div>
 
@@ -449,30 +428,14 @@ Rules:
   <!-- STEP 4 -->
   <div class="section">
     <div class="section-number">Step 04</div>
-    <h2>Set up your sourcing table</h2>
-    <p>The recipe card shows every ingredient with its auto-detected category and scaled quantity. Two things to do here before generating the master list:</p>
+    <h2>Generate the Buy List</h2>
+    <p>Once you've reviewed the pantry check results, scroll to the bottom of the Step 1 panel and hit:</p>
 
-    <div class="note note-orange">
-      <strong>⚠ Use the same units as your Pantry Inventory</strong>
-      For accurate cross-checking, write quantities using the same units that appear in the Plate This pantry sheet — e.g. <strong>pcs, pack, bottle, kg, can, jar</strong>. If the units don't match, the tool may not recognise the item as in-stock.
+    <div class="ui-row">
+      <span class="ui-badge badge-green">✦ Generate Buy List →</span>
     </div>
 
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-body">
-          <div class="step-title">Type or paste your sourcing list into the table</div>
-          <p class="step-desc">Each column matches a sourcing category — VEGGIES / FRUITS, DAIRY / FROZEN, FRESH MEAT, SEAFOOD, DRY GOODS. Type one item per row. You can also paste a list of items into any column and they will auto-fill one item per row.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-body">
-          <div class="step-title">Remove columns you don't need</div>
-          <p class="step-desc">Click <strong>×</strong> on any column header to hide it for this shoot. You can add it back using the <strong>+ Add column</strong> dropdown.</p>
-        </div>
-      </div>
-    </div>
+    <p>The tool switches to <strong>Step 2 — Buy List</strong>. This shows only the items that need to be purchased, grouped by category. If the tool detects similar items that could be combined (e.g. two types of oil), it will suggest a merge — the team can choose to combine or dismiss.</p>
   </div>
 
   <hr class="divider">
@@ -480,28 +443,39 @@ Rules:
   <!-- STEP 5 -->
   <div class="section">
     <div class="section-number">Step 05</div>
-    <h2>Generate the Master List</h2>
-    <p>Once all recipe cards look correct, go to the right panel and hit:</p>
+    <h2>Export your buy list</h2>
+    <p>Go to <strong>Step 3 — Export</strong> using the tab at the top of the right panel. You have four export options:</p>
 
-    <div class="ui-row">
-      <span class="ui-badge badge-orange">✦ Generate Master List →</span>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">↓ Download xlsx — recommended for Google Sheets</div>
+          <p class="step-desc">Downloads a formatted Excel file matching the standard Plate This sourcing sheet format — <strong>Consolas font, #FBBC04 yellow headers, six category columns</strong>. Import into Google Sheets via <strong>File → Import → Insert new sheet(s)</strong>. The tab will be named with the client and shoot date automatically.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">↓ Save as PDF / Print — for printed market lists</div>
+          <p class="step-desc">Opens a clean print preview in a new tab with the buy list formatted for A4. Hit <strong>🖨 Save as PDF / Print</strong> to save or print. The file is named automatically as <strong>ProjectName_ShootDate_SourcingDayN</strong>. This is the recommended format for market runs.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">↓ Export CSV — for spreadsheet import</div>
+          <p class="step-desc">Downloads a plain CSV with all buy list items, categories, and pantry stock levels. Good for importing into other tools or sharing via email.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Copy as Text — for messaging</div>
+          <p class="step-desc">Copies the full buy list as plain text to your clipboard. Paste directly into Viber, Slack, or any group chat for quick sharing with the team.</p>
+        </div>
+      </div>
     </div>
-
-    <p>The Master List shows every ingredient across all recipes, combined and de-duplicated, with its pantry status automatically checked:</p>
-
-    <div class="ui-row">
-      <span class="ui-badge badge-green">In Stock</span>
-      <span class="ui-badge badge-gold">Low Stock</span>
-      <span class="ui-badge badge-orange">Buy</span>
-      <span class="ui-badge badge-muted">⚠ Check</span>
-    </div>
-
-    <div class="note note-green">
-      <strong>🔗 Live pantry check</strong>
-      The tool compares every ingredient against your live Plate This pantry inventory in real time. Green = you have it. Orange = needs to be purchased. Items not found in the pantry at all automatically go to Buy.
-    </div>
-
-    <p>You can still edit items in the Master List — click <strong>✎</strong> on any row to adjust the name, quantity, unit, or override the status manually. This is useful when you know something is in stock but the system didn't match it correctly.</p>
   </div>
 
   <hr class="divider">
@@ -509,64 +483,36 @@ Rules:
   <!-- STEP 6 -->
   <div class="section">
     <div class="section-number">Step 06</div>
-    <h2>Generate the Buy List</h2>
-    <p>Once you're happy with the Master List, scroll to the bottom of that tab and hit:</p>
-
-    <div class="ui-row">
-      <span class="ui-badge badge-green">✦ Generate Buy List →</span>
-    </div>
-
-    <p>The tool switches to the Buy List tab automatically. The list is grouped by:</p>
-
-    <ul class="checklist">
-      <li>Fresh Produce — first, since it's usually the first market stop</li>
-      <li>Frozen and Chilled Items — meat, seafood, dairy</li>
-      <li>Dry Goods: Cooking Items — sauces, condiments, spices, oils</li>
-      <li>Dry Goods: Pastry Items — flours, sugars, chocolates, nuts</li>
-    </ul>
-
-    <p>Each section is broken down further by subcategory (e.g. Cooking Spices, Canned Goods, Meat and Poultry) so the market run is already organized.</p>
-  </div>
-
-  <hr class="divider">
-
-  <!-- STEP 7 -->
-  <div class="section">
-    <div class="section-number">Step 07</div>
-    <h2>Export and upload to Google Sheets</h2>
+    <h2>Save your work and wrap up</h2>
+    <p>After exporting, the <strong>What's next?</strong> section appears at the bottom of Step 3 with three options:</p>
 
     <div class="steps">
       <div class="step">
         <div class="step-num">1</div>
         <div class="step-body">
-          <div class="step-title">Hit Download xlsx</div>
-          <p class="step-desc">Click the <strong>↓ Download xlsx</strong> button. The file downloads with your project name, client, and shoot date in the filename. The button shows "⏳ Generating..." briefly while it builds the file.</p>
+          <div class="step-title">💾 Save & Start New Project</div>
+          <p class="step-desc">Saves the current sourcing list to the <strong>Saved Lists</strong> bar at the top of the page, then clears everything for a new project.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">2</div>
         <div class="step-body">
-          <div class="step-title">Open the Plate This master sourcing sheet</div>
-          <p class="step-desc">Go to the quarterly Google Sheet where all buy lists are stored. The file is named by quarter — e.g. <strong>APR-JUNE 2026: PT Sourcing Lists</strong>. Make sure you're in the correct quarter's sheet for your shoot date.</p>
+          <div class="step-title">+ Add Another Sourcing Day</div>
+          <p class="step-desc">Saves the current day automatically, then opens a fresh empty table for <strong>Sourcing Day 2</strong>. Run the full check and export again for the next market day.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">3</div>
         <div class="step-body">
-          <div class="step-title">Import the xlsx as a new tab</div>
-          <p class="step-desc">In Google Sheets: <strong>File → Import → Upload</strong> → select your downloaded file → choose <strong>"Insert new sheet(s)"</strong> → Import. The new tab will appear named with the client and shoot date you entered.</p>
+          <div class="step-title">✓ Done for Now</div>
+          <p class="step-desc">Saves the project but keeps everything on screen as-is. Use this if you want to review before closing.</p>
         </div>
       </div>
     </div>
 
     <div class="note note-gold">
-      <strong>📋 What the file looks like</strong>
-      The exported xlsx matches the standard Plate This format — PROJECT label in row 1, Client / Shoot Date / Budget in rows 2-4, then the six sourcing columns (VEGGIES/FRUITS · FRUITS · DAIRY/FROZEN · FRESH MEAT · SEAFOOD · DRY GOODS) with the yellow header row, Consolas font throughout.
-    </div>
-
-    <div class="note note-orange">
-      <strong>💾 CSV backup</strong>
-      If the xlsx download doesn't work, use the <strong>↓ CSV</strong> button as a backup. You can import a CSV into Google Sheets the same way.
+      <strong>📋 Saved Lists</strong>
+      All saved projects appear as chips in the <strong>Saved Lists</strong> bar just below the project details. <strong>Single-click</strong> to select, <strong>double-click</strong> to reload a saved list back into the table. If you save a list with the same name, the tool will ask if you want to replace it or save as a new version (V2, V3...).
     </div>
   </div>
 
@@ -581,57 +527,49 @@ Rules:
       <div class="step">
         <div class="step-num">1</div>
         <div class="step-body">
-          <div class="step-title">Claude or ChatGPT — extract ingredients</div>
-          <p class="step-desc">Use the extraction prompt + attach recipe file → copy the AI's output (optional — you can also type your list directly into the tool)</p>
+          <div class="step-title">Fill in Project Name, Client, Shoot Date</div>
+          <p class="step-desc">All three required before the tool will run</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">2</div>
         <div class="step-body">
-          <div class="step-title">Fill in Project Name, Client, Shoot Date</div>
-          <p class="step-desc">At the top of photokitchenfood.github.io — required before anything else</p>
+          <div class="step-title">Type sourcing list into the table by category</div>
+          <p class="step-desc">One item per row · paste a list to auto-fill rows · remove unused columns</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">3</div>
         <div class="step-body">
-          <div class="step-title">Paste recipe → set takes → Parse & Scale</div>
-          <p class="step-desc">Photo shoots: min 3 takes · Video shoots: min 5 takes</p>
+          <div class="step-title">Hit Check Against Pantry</div>
+          <p class="step-desc">Each item flagged: In Stock · Low Stock · Buy</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">4</div>
         <div class="step-body">
-          <div class="step-title">Type your sourcing list into the table by category</div>
-          <p class="step-desc">Starred items go to Client Provided tab and are excluded from sourcing</p>
+          <div class="step-title">Generate Buy List</div>
+          <p class="step-desc">Items to purchase grouped by category · combine suggestions optional</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">5</div>
         <div class="step-body">
-          <div class="step-title">Generate Master List → review statuses</div>
-          <p class="step-desc">Live pantry check runs automatically. Edit any mismatches manually.</p>
+          <div class="step-title">Export — xlsx for Google Sheets · PDF for market runs</div>
+          <p class="step-desc">xlsx imports directly into your quarterly PT Sourcing Lists sheet · PDF prints A4 formatted list</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">6</div>
         <div class="step-body">
-          <div class="step-title">Generate Buy List → Download xlsx</div>
-          <p class="step-desc">Grouped by category, formatted and ready to import</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">7</div>
-        <div class="step-body">
-          <div class="step-title">Import xlsx into Google Sheets as a new tab</div>
-          <p class="step-desc">File → Import → Insert new sheet(s) → done</p>
+          <div class="step-title">Save & finish or add another sourcing day</div>
+          <p class="step-desc">Must complete all 3 steps before adding a new day</p>
         </div>
       </div>
     </div>
   </div>
 
 </div>
-
 <footer>
   Plate This · Internal Use Only · photokitchenfood.github.io
 </footer>

@@ -185,6 +185,8 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 <div class="save-bar" id="saveBar">
   <span>SAVED LISTS: <span style="font-weight:400;opacity:.6;text-transform:none;letter-spacing:0">click to select · double-click to load</span></span>
   <div id="savedListChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+  <button class="btn btn-ghost btn-sm" onclick="saveCurrentProject()" style="margin-left:4px;flex-shrink:0">💾 Save</button>
+  <button class="btn btn-ghost btn-sm" onclick="clearSaved()" style="color:var(--accent);flex-shrink:0">Clear All</button>
 </div>
 
 <div class="inv-bar">
