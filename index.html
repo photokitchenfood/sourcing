@@ -750,10 +750,8 @@ function runCheck() {
   document.getElementById('rightSub').textContent = `${items.length} items · ${ok} in stock · ${low+buy} to source`;
   stepsCompleted.step1 = true;
   updateAddDayButton();
-  // Stay on Step 1 to show results — don't auto-switch to Step 2
+  // Stay on Step 1 — team reviews results here before moving to Step 2
   switchStep(1, document.getElementById('stab-1'));
-  // Pre-build buy list in background so Step 2 is ready when they click it
-  buildBuyList();
 }
 
 // ============================================================
