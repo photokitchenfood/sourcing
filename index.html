@@ -722,40 +722,37 @@ function runCheck() {
   let ok=0,low=0,buy=0;
   checkResults.forEach(r=>{if(r.status==='ok')ok++;else if(r.status==='low')low++;else if(r.status==='buy')buy++;});
 
-  document.getElementById('summary1').style.display='grid';
-  document.getElementById('cnt1Ok').textContent=ok;
-  document.getElementById('cnt1Low').textContent=low;
-  // Fix the nested span issue
-  document.getElementById('summary1').innerHTML=`
+  // Update summary tiles
+  const sum = document.getElementById('summary1');
+  sum.innerHTML = `
     <div class="tile tile-ok"><span class="tile-num">${ok}</span><span class="tile-lbl">In Stock</span></div>
     <div class="tile tile-low"><span class="tile-num">${low}</span><span class="tile-lbl">Low Stock</span></div>
     <div class="tile tile-buy"><span class="tile-num">${buy}</span><span class="tile-lbl">Need to Buy</span></div>`;
-  document.getElementById('summary1').style.display='grid';
+  sum.style.display = 'grid';
 
-  // Group by column
-  const byCol={};
-  checkResults.forEach(r=>{if(!byCol[r.col])byCol[r.col]=[];byCol[r.col].push(r);});
-
-  let html='';
-  activeCols.forEach(col=>{
-    const colItems=byCol[col]||[];
-    if(!colItems.length)return;
-    html+=`<div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 5px;padding-bottom:4px;border-bottom:1px solid var(--border)">${col}</div>`;
-    html+=colItems.map(r=>{
-      const cls=r.status==='ok'?'ok':r.status==='low'?'low':r.status==='sp'?'sp':'buy';
-      const badge=r.status==='ok'?'<span class="badge b-ok">In Stock</span>':r.status==='low'?'<span class="badge b-low">Low</span>':r.status==='sp'?'<span class="badge b-sp">⭐ Client</span>':'<span class="badge b-buy">Buy</span>';
-      const stock=r.inv?`${r.inv.stock} ${r.inv.unit} in pantry`:r.status==='sp'?'Client provided':'Not in pantry';
-      return`<div class="check-item ${cls}"><div><div class="ci-name">${r.raw}</div><div class="ci-stock">${stock}</div></div>${badge}</div>`;
+  // Build check results list grouped by column
+  const byCol = {};
+  checkResults.forEach(r => { if(!byCol[r.col]) byCol[r.col]=[]; byCol[r.col].push(r); });
+  let html = '';
+  activeCols.forEach(col => {
+    const colItems = byCol[col] || [];
+    if (!colItems.length) return;
+    html += `<div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 5px;padding-bottom:4px;border-bottom:1px solid var(--border)">${col}</div>`;
+    html += colItems.map(r => {
+      const cls = r.status==='ok'?'ok':r.status==='low'?'low':r.status==='sp'?'sp':'buy';
+      const badge = r.status==='ok'?'<span class="badge b-ok">In Stock</span>':r.status==='low'?'<span class="badge b-low">Low</span>':r.status==='sp'?'<span class="badge b-sp">⭐ Client</span>':'<span class="badge b-buy">Buy</span>';
+      const stock = r.inv ? `${r.inv.stock} ${r.inv.unit} in pantry` : r.status==='sp'?'Client provided':'Not in pantry';
+      return `<div class="check-item ${cls}"><div><div class="ci-name">${r.raw}</div><div class="ci-stock">${stock}</div></div>${badge}</div>`;
     }).join('');
   });
-
-  document.getElementById('checkOut').innerHTML=html;
-  document.getElementById('toBuyListWrap').style.display='block';
-  document.getElementById('rightSub').textContent=`${items.length} items · ${ok} in stock · ${low+buy} to source`;
+  document.getElementById('checkOut').innerHTML = html;
+  document.getElementById('toBuyListWrap').style.display = 'block';
+  document.getElementById('rightSub').textContent = `${items.length} items · ${ok} in stock · ${low+buy} to source`;
   stepsCompleted.step1 = true;
   updateAddDayButton();
-  switchStep(1,document.getElementById('stab-1'));
-  // Auto-rebuild buy list so Step 2 is always in sync with current check
+  // Stay on Step 1 to show results — don't auto-switch to Step 2
+  switchStep(1, document.getElementById('stab-1'));
+  // Pre-build buy list in background so Step 2 is ready when they click it
   buildBuyList();
 }
 
@@ -941,30 +938,21 @@ function exportPDF() {
   ${bodyHTML}
   </body></html>`;
 
-  // Build filename: ProjectName_ShootDate_SourcingDay#
-  const safeName = pName.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-');
-  const safeDate = shootDate.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-');
+  // Build filename
+  const safeName = pName.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+  const safeDate = shootDate.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
   const safeDay = currentDayLabel.replace(/\s+/g,'');
-  const filename = `${safeName}_${safeDate}_${safeDay}`;
+  const filename = `${safeName}_${safeDate}_${safeDay}.html`;
 
-  // Use print-to-PDF via hidden iframe — no dialog, triggers browser's built-in PDF save
-  let iframe = document.getElementById('pdf-iframe');
-  if (iframe) iframe.remove();
-  iframe = document.createElement('iframe');
-  iframe.id = 'pdf-iframe';
-  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
-  document.body.appendChild(iframe);
-  iframe.contentDocument.open();
-  iframe.contentDocument.write(html);
-  iframe.contentDocument.close();
-  // Set the title so "Save as PDF" dialog defaults to our filename
-  iframe.contentDocument.title = filename;
-  setTimeout(() => {
-    iframe.contentWindow.focus();
-    iframe.contentWindow.print();
-    showFieldError('✓ PDF dialog opened. Choose "Save as PDF" and it will be named: ' + filename);
-  }, 400);
-}
+  // Download directly to Downloads — no dialog
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showFieldError('✓ Saved to Downloads: ' + filename + ' — open it in browser, then File → Print → Save as PDF');
 
 
 function exportCSV() {
