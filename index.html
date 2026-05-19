@@ -82,10 +82,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 .add-row-btn:hover{background:var(--border);color:var(--ink);}
 
 /* STARRED ROW */
-.star-cell{width:32px;text-align:center;padding:0!important;}
-.star-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:8px 4px;opacity:.3;transition:opacity .15s;display:block;width:100%;}
-.star-btn:hover,.star-btn.on{opacity:1;}
-.stbl tbody tr.starred td{background:var(--purple-light)!important;}
+
 
 /* BUTTONS */
 .btn{padding:8px 16px;border:none;border-radius:7px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;}
@@ -216,7 +213,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
       </select>
     </div>
   </div>
-  <p class="note" style="margin-bottom:10px">★ Click × on any column header to hide it. Use ⭐ to mark client-provided items. Hit <strong>Check Against Pantry</strong> any time to refresh all results.</p>
+  <p class="note" style="margin-bottom:10px">★ Click × on any column header to hide it. Hit <strong>Check Against Pantry</strong> any time to refresh all results.</p>
 
   <!-- TABLE -->
   <div class="tbl-wrap">
@@ -514,15 +511,14 @@ function renderTable() {
 
   // Header
   head.innerHTML=`<tr>
-    <th style="width:44px;text-align:center;font-size:8px;line-height:1.3">CLIENT<br>PROVIDED</th>
+    
     ${activeCols.map(c=>`<th>${c}</th>`).join('')}
   </tr>`;
 
   // Ensure enough rows
   while(tableData.length<8)tableData.push({starred:false,cells:{}});
 
-  body.innerHTML=tableData.map((row,ri)=>`<tr class="${row.starred?'starred':''}" id="row-${ri}">
-    <td class="star-cell"><button class="star-btn ${row.starred?'on':''}" onclick="toggleRowStar(${ri})" title="⭐ Mark as client-provided (excluded from buy list)">⭐</button></td>
+  body.innerHTML=tableData.map((row,ri)=>`<tr id="row-${ri}">
     ${activeCols.map(col=>{
       const ph=col==='VEGGIES / FRUITS'?'e.g. Beetroot, 2pcs':col==='DAIRY / FROZEN'?'e.g. Eggs, 2 dozen':col==='FRESH MEAT'?'e.g. Chicken thigh, 1kg':col==='SEAFOOD'?'e.g. Shrimp, 500g':'e.g. Brown Sugar, 2kg';
       return `<td><textarea class="cell-input" rows="1" data-row="${ri}" data-col="${col}" placeholder="${ph}">${row.cells[col]||''}</textarea></td>`;
@@ -583,10 +579,7 @@ function updateCell(ri,col,val) {
     const tr=document.createElement('tr');
     tr.id=`row-${newRi}`;
     // star cell
-    const starTd=document.createElement('td');
-    starTd.className='star-cell';
-    starTd.innerHTML=`<button class="star-btn" onclick="toggleRowStar(${newRi})" title="Mark as client-provided">⭐</button>`;
-    tr.appendChild(starTd);
+
     activeCols.forEach(col=>{
       const td=document.createElement('td');
       const ph=col==='VEGGIES / FRUITS'?'e.g. Beetroot, 2pcs':col==='DAIRY / FROZEN'?'e.g. Eggs, 2 dozen':col==='FRESH MEAT'?'e.g. Chicken thigh, 1kg':col==='SEAFOOD'?'e.g. Shrimp, 500g':'e.g. Brown Sugar, 2kg';
@@ -605,12 +598,7 @@ function updateCell(ri,col,val) {
 }
 
 
-function toggleRowStar(ri) {
-  tableData[ri].starred=!tableData[ri].starred;
-  const row=document.getElementById(`row-${ri}`);
-  row.classList.toggle('starred',tableData[ri].starred);
-  row.querySelector('.star-btn').classList.toggle('on',tableData[ri].starred);
-}
+
 
 function addRow() {
   tableData.push({starred:false,cells:{}});renderTable();
@@ -639,7 +627,7 @@ function getTableItems() {
       if(!val)return;
       // Split by newlines in case multiple items per cell
       val.split('\n').filter(Boolean).forEach(line=>{
-        items.push({raw:line.trim(),col,starred:row.starred,rowIdx:ri});
+        items.push({raw:line.trim(),col,starred:false,rowIdx:ri});
       });
     });
   });
@@ -789,7 +777,7 @@ let combinedItems=new Set(); // keys of items that have been combined
 
 function buildBuyList() {
   buyItems=checkResults.filter(r=>r.status==='buy'||r.status==='low');
-  const sponsored=checkResults.filter(r=>r.status==='sp');
+  const sponsored=[];
   combinedItems=new Set();
 
   // Detect combine suggestions
@@ -898,7 +886,7 @@ function exportPDF() {
     return;
   }
   const items = buyItems.filter(it => !combinedItems.has(it.raw) || it.combined);
-  const sponsored = checkResults.filter(r => r.status === 'sp');
+  const sponsored = [];
   const pName = document.getElementById('projectName').value || 'Project';
   const client = document.getElementById('clientName').value || '';
   const shootDate = document.getElementById('shootDate').value || '';
