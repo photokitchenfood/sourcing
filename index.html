@@ -1260,6 +1260,7 @@ function loadSavedProject(key) {
     document.querySelectorAll('.saved-item').forEach(c => {
       c.style.background = ''; c.style.borderColor = ''; c.style.color = '';
     });
+    
 
     showFieldError('✓ Loaded: ' + proj.label);
   } catch(e) { showFieldError('⚠ Could not load saved project.'); }
@@ -1290,29 +1291,42 @@ function renderSavedChips() {
       return;
     }
     wrap.innerHTML = existing.map(p => `
-      <div class="saved-item" id="chip-${p.key}" title="Click to select · Double-click to load"
-        onclick="selectChip('${p.key}')"
-        ondblclick="loadSavedProject('${p.key}')"
-        style="cursor:pointer;transition:all .15s">
+      <div class="saved-item" data-key="${p.key}" title="Click to select · Double-click to load" style="cursor:pointer;transition:all .15s">
         <span>${p.label}</span>
         <span style="opacity:.4;font-size:10px;margin-left:2px">${p.savedAt}</span>
-        <button onclick="event.stopPropagation();deleteSaved('${p.key}')" title="Delete" style="margin-left:4px">×</button>
+        <button class="chip-del-btn" data-key="${p.key}" title="Delete" style="margin-left:4px">×</button>
       </div>`).join('');
+
+    // Wire events via JS — avoids quote-escaping issues with inline handlers
+    wrap.querySelectorAll('.saved-item').forEach(chip => {
+      const key = chip.dataset.key;
+      chip.addEventListener('click', (e) => {
+        if (e.target.classList.contains('chip-del-btn')) return;
+        selectChip(key);
+      });
+      chip.addEventListener('dblclick', (e) => {
+        if (e.target.classList.contains('chip-del-btn')) return;
+        loadSavedProject(key);
+      });
+    });
+    wrap.querySelectorAll('.chip-del-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteSaved(btn.dataset.key);
+      });
+    });
   } catch(e) { wrap.innerHTML = ''; }
 }
 
 function selectChip(key) {
-  // Single click — highlight chip, show hint
   document.querySelectorAll('.saved-item').forEach(c => {
     c.style.background = ''; c.style.borderColor = ''; c.style.color = '';
   });
-  const chip = document.getElementById('chip-' + key);
+  const chip = document.querySelector(`.saved-item[data-key="${key}"]`);
   if (chip) {
     chip.style.background = '#053E65';
     chip.style.borderColor = '#053E65';
     chip.style.color = 'white';
-    // Store selected key for potential keyboard load
-    chip.dataset.selected = 'true';
   }
   const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
   const proj = existing.find(p => p.key === key);
