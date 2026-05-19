@@ -1215,10 +1215,13 @@ function saveAsNew() {
 }
 
 function loadSavedProject(key) {
+  console.log('[PT] loadSavedProject called with key:', key);
   try {
     const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+    console.log('[PT] saved projects count:', existing.length);
     const proj = existing.find(p => p.key === key);
-    if (!proj) return;
+    console.log('[PT] found proj:', proj ? proj.label : 'NOT FOUND');
+    if (!proj) { showFieldError('⚠ Could not find saved project. Try again.'); return; }
 
     // Check if current table has unsaved data
     syncTableDataFromDOM();
@@ -1294,7 +1297,8 @@ function renderSavedChips() {
       <div class="saved-item" data-key="${p.key}" title="Click to select · Double-click to load" style="cursor:pointer;transition:all .15s">
         <span>${p.label}</span>
         <span style="opacity:.4;font-size:10px;margin-left:2px">${p.savedAt}</span>
-        <button class="chip-del-btn" data-key="${p.key}" title="Delete" style="margin-left:4px">×</button>
+        <button class="chip-load-btn" data-key="${p.key}" title="Load this project" style="margin-left:4px;padding:1px 7px;background:var(--green);color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer">Load</button>
+        <button class="chip-del-btn" data-key="${p.key}" title="Delete" style="margin-left:2px">×</button>
       </div>`).join('');
 
     // Wire events via JS — avoids quote-escaping issues with inline handlers
@@ -1305,8 +1309,16 @@ function renderSavedChips() {
         selectChip(key);
       });
       chip.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        console.log('[PT] dblclick fired, key:', key);
         if (e.target.classList.contains('chip-del-btn')) return;
         loadSavedProject(key);
+      });
+    });
+    wrap.querySelectorAll('.chip-load-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        loadSavedProject(btn.dataset.key);
       });
     });
     wrap.querySelectorAll('.chip-del-btn').forEach(btn => {
