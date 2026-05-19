@@ -281,7 +281,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
         <button class="btn btn-green" style="padding:12px;font-size:13px" onclick="finishAndSave()">
           💾 Save &amp; Finish this project
         </button>
-        <button class="btn btn-ghost" style="padding:12px;font-size:13px;border-color:var(--blue);color:var(--blue)" onclick="finishAndAddDay()">
+        <button class="btn btn-ghost" style="padding:12px;font-size:13px;border-color:var(--blue);color:var(--blue)" onclick="finishAndAddDay()" id="addDayBtn" disabled style="opacity:0.4;cursor:not-allowed" title="Complete all 3 steps first">
           + Add Another Sourcing Day
         </button>
       </div>
@@ -713,6 +713,8 @@ function runCheck() {
   document.getElementById('checkOut').innerHTML=html;
   document.getElementById('toBuyListWrap').style.display='block';
   document.getElementById('rightSub').textContent=`${items.length} items · ${ok} in stock · ${low+buy} to source`;
+  stepsCompleted.step1 = true;
+  updateAddDayButton();
   switchStep(1,document.getElementById('stab-1'));
 }
 
@@ -758,6 +760,8 @@ function buildBuyList() {
   </div>`).join('');
 
   renderBuyList(buyItems,sponsored);
+  stepsCompleted.step2 = true;
+  updateAddDayButton();
   switchStep(2,document.getElementById('stab-2'));
 }
 
@@ -817,6 +821,7 @@ function renderBuyList(items,sponsored) {
 // STEP 3: EXPORT
 // ============================================================
 async function exportXLSX(e) {
+  stepsCompleted.step3 = true; updateAddDayButton();
   const items=buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
   if(!items.length){alert('No items to export. Generate Buy List first.');return;}
   const pName=document.getElementById('projectName').value||'Project';
@@ -838,6 +843,7 @@ async function exportXLSX(e) {
 }
 
 function exportPDF() {
+  stepsCompleted.step3 = true; updateAddDayButton();
   // Guard: must generate buy list first
   if (!buyItems || buyItems.length === 0) {
     showFieldError('⚠ Generate the Buy List first (Step 2) before exporting PDF.');
@@ -952,6 +958,8 @@ function resetState() {
   checkResults = [];
   buyItems = [];
   combinedItems = new Set();
+  stepsCompleted = { step1: false, step2: false, step3: false };
+  updateAddDayButton();
   document.getElementById('checkOut').innerHTML = '<div class="empty"><div class="big">🥕</div><p>Fill in your sourcing list and hit <strong>Check Against Pantry</strong>.</p></div>';
   document.getElementById('summary1').style.display = 'none';
   document.getElementById('toBuyListWrap').style.display = 'none';
@@ -973,6 +981,8 @@ function finishAndSave() {
     document.getElementById('clientName').value = '';
     document.getElementById('shootDate').value = '';
     renderDayLabel();
+    document.getElementById('tblBody').innerHTML = '';
+    document.getElementById('tblHead').innerHTML = '';
     renderColManager();
     renderTable();
     resetState();
@@ -988,20 +998,31 @@ function finishAndAddDay() {
     showFieldError('⚠ Fill in Project Name, Client, and Shoot Date first.');
     return;
   }
-  // Parse current day number and increment
+  if (!stepsCompleted.step1 || !stepsCompleted.step2 || !stepsCompleted.step3) {
+    showFieldError('⚠ Complete all 3 steps before adding a new sourcing day.');
+    return;
+  }
   const match = currentDayLabel.match(/\d+/);
   const nextN = match ? parseInt(match[0]) + 1 : 2;
-  // Save current day
   syncTableDataFromDOM();
   saveCurrentProject(true);
-  // Reset table for next day
+  // Hard reset everything
   tableData = [];
   activeCols = [...ALL_COLS];
   currentDayLabel = `Sourcing Day ${nextN}`;
+  stepsCompleted = { step1: false, step2: false, step3: false };
+  // Force wipe DOM
+  const tblBody = document.getElementById('tblBody');
+  const tblHead = document.getElementById('tblHead');
+  if (tblBody) tblBody.innerHTML = '';
+  if (tblHead) tblHead.innerHTML = '';
   renderDayLabel();
   renderColManager();
   renderTable();
   resetState();
+  updateAddDayButton();
+  document.querySelector('.left').scrollTop = 0;
+  switchStep(1, document.getElementById('stab-1'));
   showFieldError(`✓ Sourcing Day ${nextN - 1} saved. Now editing Sourcing Day ${nextN}.`);
 }
 
@@ -1009,6 +1030,7 @@ function finishAndAddDay() {
 // INIT
 // ============================================================
 let currentDayLabel = 'Sourcing Day 1';
+let stepsCompleted = { step1: false, step2: false, step3: false };
 
 function syncTableDataFromDOM() {
   // Sync any typed values from DOM back to tableData before switching
@@ -1101,6 +1123,24 @@ function renderSavedChips() {
 // ============================================================
 // INIT
 // ============================================================
+function renderDayLabel() {
+  const el = document.getElementById('dayLabel');
+  if (el) el.textContent = currentDayLabel.toUpperCase();
+}
+
+function updateAddDayButton() {
+  const btn = document.getElementById('addDayBtn');
+  if (!btn) return;
+  const allDone = stepsCompleted.step1 && stepsCompleted.step2 && stepsCompleted.step3;
+  btn.disabled = !allDone;
+  btn.style.opacity = allDone ? '1' : '0.4';
+  btn.style.cursor = allDone ? 'pointer' : 'not-allowed';
+  btn.title = allDone ? 'Add another sourcing day' :
+    !stepsCompleted.step1 ? 'Complete Step 1 (Pantry Check) first' :
+    !stepsCompleted.step2 ? 'Complete Step 2 (Buy List) first' :
+    'Complete Step 3 (Export) first';
+}
+
 window.addEventListener('load',()=>{
   loadInventory();
   tableData = [];
@@ -1109,6 +1149,7 @@ window.addEventListener('load',()=>{
   renderColManager();
   renderTable();
   renderDayLabel();
+  updateAddDayButton();
   renderSavedChips();
 });
 </script>
