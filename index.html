@@ -1122,27 +1122,96 @@ function syncTableDataFromDOM() {
 
 // LOCALSTORAGE SAVE / LOAD
 // ============================================================
+function makeLabel(pName, client, shootDate, dayLabel) {
+  return `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''} (${dayLabel})`;
+}
+
 function saveCurrentProject(silent) {
   const pName = document.getElementById('projectName').value || 'Untitled Project';
   const client = document.getElementById('clientName').value || '';
   const shootDate = document.getElementById('shootDate').value || '';
   syncTableDataFromDOM();
-  const key = `pt_project_${Date.now()}`;
-  const saved = {
-    key, label: `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''} (${currentDayLabel})`,
-    pName, client, shootDate, tableData: JSON.parse(JSON.stringify(tableData)),
-    activeCols: [...activeCols], currentDayLabel,
+  const label = makeLabel(pName, client, shootDate, currentDayLabel);
+  const snapshot = {
+    pName, client, shootDate,
+    tableData: JSON.parse(JSON.stringify(tableData)),
+    activeCols: [...activeCols],
+    currentDayLabel,
     savedAt: new Date().toLocaleDateString()
   };
+
   try {
-    const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
-    existing.push(saved);
+    let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+
+    // Check for duplicate label
+    const dupeIdx = existing.findIndex(p => p.label === label);
+    if (dupeIdx >= 0 && !silent) {
+      // Show inline prompt instead of browser confirm
+      showSaveDupePrompt(label, snapshot, dupeIdx, existing);
+      return;
+    }
+
+    // No duplicate — just save
+    const key = `pt_project_${Date.now()}`;
+    existing.push({ key, label, ...snapshot });
     localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
     renderSavedChips();
-    if (!silent) showFieldError('✓ Project saved: ' + saved.label);
+    if (!silent) showFieldError('✓ Saved: ' + label);
   } catch(e) {
     if (!silent) showFieldError('⚠ Could not save — browser storage may be full.');
   }
+}
+
+function showSaveDupePrompt(label, snapshot, dupeIdx, existing) {
+  // Remove any existing prompt
+  const old = document.getElementById('dupe-prompt');
+  if (old) old.remove();
+
+  const prompt = document.createElement('div');
+  prompt.id = 'dupe-prompt';
+  prompt.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#053E65;color:white;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:IBM Plex Sans,sans-serif;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+  prompt.innerHTML = `
+    <span style="flex:1">A saved list named <strong>"${label}"</strong> already exists. Replace it or save as new?</span>
+    <button onclick="overwriteSaved(${dupeIdx})" style="padding:6px 14px;background:#FDC24C;color:#053E65;border:none;border-radius:6px;font-weight:700;cursor:pointer">Replace</button>
+    <button onclick="saveAsNew('${label.replace(/'/g,"\'")}', ${JSON.stringify(snapshot).replace(/</g,'\u003c')})" style="padding:6px 14px;background:white;color:#053E65;border:none;border-radius:6px;font-weight:700;cursor:pointer">Save as New</button>
+    <button onclick="document.getElementById('dupe-prompt').remove()" style="padding:6px 10px;background:transparent;border:1px solid rgba(255,255,255,.4);color:white;border-radius:6px;cursor:pointer">Cancel</button>`;
+
+  // Store snapshot on element for retrieval
+  prompt._snapshot = snapshot;
+  prompt._dupeIdx = dupeIdx;
+  document.body.appendChild(prompt);
+}
+
+function overwriteSaved(dupeIdx) {
+  const prompt = document.getElementById('dupe-prompt');
+  if (!prompt) return;
+  const snapshot = prompt._snapshot;
+  const label = snapshot ? makeLabel(snapshot.pName, snapshot.client, snapshot.shootDate, snapshot.currentDayLabel) : '';
+  try {
+    let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+    existing[dupeIdx] = { ...existing[dupeIdx], ...snapshot, savedAt: new Date().toLocaleDateString() };
+    localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
+    renderSavedChips();
+    showFieldError('✓ Replaced: ' + label);
+  } catch(e) { showFieldError('⚠ Could not save.'); }
+  prompt.remove();
+}
+
+function saveAsNew(originalLabel, snapshot) {
+  const prompt = document.getElementById('dupe-prompt');
+  if (prompt) prompt.remove();
+  try {
+    let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+    // Find how many versions exist and increment
+    const versionMatch = existing.filter(p => p.label.startsWith(originalLabel.replace(/ V\d+$/, '')));
+    const nextV = versionMatch.length + 1;
+    const newLabel = `${originalLabel.replace(/ V\d+$/, '')} V${nextV}`;
+    const key = `pt_project_${Date.now()}`;
+    existing.push({ key, label: newLabel, ...snapshot, savedAt: new Date().toLocaleDateString() });
+    localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
+    renderSavedChips();
+    showFieldError('✓ Saved as new: ' + newLabel);
+  } catch(e) { showFieldError('⚠ Could not save.'); }
 }
 
 function loadSavedProject(key) {
@@ -1150,12 +1219,23 @@ function loadSavedProject(key) {
     const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
     const proj = existing.find(p => p.key === key);
     if (!proj) return;
+    // Confirm if table has data
+    const hasData = tableData.some(r => Object.values(r.cells||{}).some(v => v && v.trim()));
+    if (hasData) {
+      const ok = confirm(`Load "${proj.label}"? Unsaved changes to the current table will be lost.`);
+      if (!ok) return;
+    }
     document.getElementById('projectName').value = proj.pName || '';
     document.getElementById('clientName').value = proj.client || '';
     document.getElementById('shootDate').value = proj.shootDate || '';
     tableData = proj.tableData ? JSON.parse(JSON.stringify(proj.tableData)) : [];
     activeCols = proj.activeCols ? [...proj.activeCols] : [...ALL_COLS];
     currentDayLabel = proj.currentDayLabel || 'Sourcing Day 1';
+    // Hard reset then re-render with loaded data
+    const tblBody = document.getElementById('tblBody');
+    const tblHead = document.getElementById('tblHead');
+    if (tblBody) tblBody.innerHTML = '';
+    if (tblHead) tblHead.innerHTML = '';
     renderDayLabel();
     renderColManager();
     renderTable();
@@ -1174,22 +1254,38 @@ function deleteSaved(key) {
 }
 
 function clearSaved() {
-  if (!confirm('Clear all saved projects?')) return;
+  if (!confirm('Clear all saved projects? This cannot be undone.')) return;
   localStorage.removeItem('pt_saved_projects');
   renderSavedChips();
 }
 
 function renderSavedChips() {
   const wrap = document.getElementById('savedListChips');
+  if (!wrap) return;
   try {
     const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
-    if (!existing.length) { wrap.innerHTML = '<span style="color:var(--muted);font-size:11px">No saved projects yet</span>'; return; }
+    if (!existing.length) {
+      wrap.innerHTML = '<span style="color:var(--muted);font-size:11px;font-family:DM Mono,monospace">No saved lists yet</span>';
+      return;
+    }
     wrap.innerHTML = existing.map(p => `
-      <div class="saved-item">
-        <span onclick="loadSavedProject('${p.key}')" style="cursor:pointer" title="Click to load">${p.label} <span style="opacity:.5;font-size:10px">${p.savedAt}</span></span>
-        <button onclick="deleteSaved('${p.key}')" title="Delete">×</button>
+      <div class="saved-item" title="Double-click to load">
+        <span
+          ondblclick="loadSavedProject('${p.key}')"
+          onclick="highlightChip(this)"
+          style="cursor:pointer"
+        >${p.label} <span style="opacity:.5;font-size:10px">${p.savedAt}</span></span>
+        <button onclick="deleteSaved('${p.key}')" title="Delete this saved list">×</button>
       </div>`).join('');
   } catch(e) { wrap.innerHTML = ''; }
+}
+
+function highlightChip(el) {
+  // Single click — highlight to show it's selected, hint at double-click
+  document.querySelectorAll('.saved-item span').forEach(s => s.style.fontWeight = '');
+  el.style.fontWeight = '600';
+  showFieldError('Double-click to load: ' + el.textContent.trim());
+  setTimeout(() => { el.style.fontWeight = ''; }, 3000);
 }
 
 // ============================================================
