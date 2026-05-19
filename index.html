@@ -170,33 +170,33 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
   </div>
 </header>
 
-<div class="proj-bar" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;padding:10px 28px;align-items:center">
+<div class="proj-bar" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 32px;padding:10px 28px;align-items:center">
   <!-- Row 1: Shoot Date | Sourcing Date -->
   <div style="display:flex;align-items:center;gap:8px">
-    <span class="bl" style="white-space:nowrap;flex-shrink:0">Shoot Date <span style="color:var(--accent)">*</span></span>
-    <input class="bi" id="shootDate" type="date" style="flex:1;font-family:'IBM Plex Sans',sans-serif;font-size:13px">
+    <span class="bl" style="width:145px;flex-shrink:0;text-align:right">Shoot Date <span style="color:var(--accent)">*</span></span>
+    <input class="bi" id="shootDate" type="date" style="max-width:160px;font-family:'IBM Plex Sans',sans-serif;font-size:13px">
   </div>
   <div style="display:flex;align-items:center;gap:8px">
-    <span class="bl" style="white-space:nowrap;flex-shrink:0">Sourcing Date <span style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0;font-size:9px">optional</span></span>
-    <input class="bi" id="sourcingDate" type="date" style="flex:1;font-family:'IBM Plex Sans',sans-serif;font-size:13px">
+    <span class="bl" style="width:145px;flex-shrink:0;text-align:right">Sourcing Date <span style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0;font-size:9px">optional</span></span>
+    <input class="bi" id="sourcingDate" type="date" style="max-width:160px;font-family:'IBM Plex Sans',sans-serif;font-size:13px">
   </div>
   <!-- Row 2: Client | Project -->
   <div style="display:flex;align-items:center;gap:8px">
-    <span class="bl" style="white-space:nowrap;flex-shrink:0">Client <span style="color:var(--accent)">*</span></span>
-    <input class="bi" id="clientName" type="text" placeholder="Client name" style="flex:1" autocomplete="off">
+    <span class="bl" style="width:145px;flex-shrink:0;text-align:right">Client <span style="color:var(--accent)">*</span></span>
+    <input class="bi" id="clientName" type="text" placeholder="Client name" style="max-width:140px" autocomplete="off">
   </div>
   <div style="display:flex;align-items:center;gap:8px">
-    <span class="bl" style="white-space:nowrap;flex-shrink:0">Project <span style="color:var(--accent)">*</span></span>
-    <input class="bi" id="projectName" type="text" placeholder="Project name" style="flex:1" autocomplete="off">
+    <span class="bl" style="width:145px;flex-shrink:0;text-align:right">Project <span style="color:var(--accent)">*</span></span>
+    <input class="bi" id="projectName" type="text" placeholder="Project name" style="flex:1;min-width:0" autocomplete="off">
   </div>
   <!-- Row 3: Budget | Food Stylist -->
   <div style="display:flex;align-items:center;gap:8px">
-    <span class="bl" style="white-space:nowrap;flex-shrink:0">Budget <span style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0;font-size:9px">optional</span></span>
-    <input class="bi" id="projectBudget" type="text" placeholder="e.g. ₱15,000" style="flex:1" autocomplete="off">
+    <span class="bl" style="width:145px;flex-shrink:0;text-align:right">Budget <span style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0;font-size:9px">optional</span></span>
+    <input class="bi" id="projectBudget" type="text" placeholder="e.g. ₱15,000" style="max-width:140px" autocomplete="off">
   </div>
   <div style="display:flex;align-items:center;gap:8px">
-    <span class="bl" style="white-space:nowrap;flex-shrink:0">Food Stylist <span style="color:var(--accent)">*</span></span>
-    <select class="bi" id="foodStylist" style="flex:1;cursor:pointer;background:transparent">
+    <span class="bl" style="width:145px;flex-shrink:0;text-align:right">Food Stylist <span style="color:var(--accent)">*</span></span>
+    <select class="bi" id="foodStylist" style="max-width:140px;cursor:pointer;background:transparent">
       <option value="">Select stylist</option>
       <option value="Chef Shen">Chef Shen</option>
       <option value="Chef Ysay">Chef Ysay</option>
