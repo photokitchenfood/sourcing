@@ -170,16 +170,41 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
   </div>
 </header>
 
-<div class="proj-bar">
-  <span class="bl">Project</span>
-  <input class="bi" id="projectName" type="text" placeholder="Project name" style="max-width:520px;flex:2;min-width:240px" autocomplete="off">
-  <div class="bdiv"></div>
-  <span class="bl">Client</span>
-  <input class="bi" id="clientName" type="text" placeholder="Client name" style="max-width:170px" autocomplete="off">
-  <div class="bdiv"></div>
-  <span class="bl">Shoot Date</span>
-  <input class="bi" id="shootDate" type="date" style="max-width:185px;font-family:'IBM Plex Sans',sans-serif;font-size:13px" autocomplete="off">
+<div class="proj-bar" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;padding:10px 28px;align-items:center">
+  <!-- Row 1: Shoot Date | Sourcing Date -->
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="bl" style="white-space:nowrap;flex-shrink:0">Shoot Date <span style="color:var(--accent)">*</span></span>
+    <input class="bi" id="shootDate" type="date" style="flex:1;font-family:'IBM Plex Sans',sans-serif;font-size:13px">
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="bl" style="white-space:nowrap;flex-shrink:0">Sourcing Date <span style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0;font-size:9px">optional</span></span>
+    <input class="bi" id="sourcingDate" type="date" style="flex:1;font-family:'IBM Plex Sans',sans-serif;font-size:13px">
+  </div>
+  <!-- Row 2: Client | Project -->
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="bl" style="white-space:nowrap;flex-shrink:0">Client <span style="color:var(--accent)">*</span></span>
+    <input class="bi" id="clientName" type="text" placeholder="Client name" style="flex:1" autocomplete="off">
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="bl" style="white-space:nowrap;flex-shrink:0">Project <span style="color:var(--accent)">*</span></span>
+    <input class="bi" id="projectName" type="text" placeholder="Project name" style="flex:1" autocomplete="off">
+  </div>
+  <!-- Row 3: Budget | Food Stylist -->
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="bl" style="white-space:nowrap;flex-shrink:0">Budget <span style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0;font-size:9px">optional</span></span>
+    <input class="bi" id="projectBudget" type="text" placeholder="e.g. ₱15,000" style="flex:1" autocomplete="off">
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="bl" style="white-space:nowrap;flex-shrink:0">Food Stylist <span style="color:var(--accent)">*</span></span>
+    <select class="bi" id="foodStylist" style="flex:1;cursor:pointer;background:transparent">
+      <option value="">Select stylist</option>
+      <option value="Chef Shen">Chef Shen</option>
+      <option value="Chef Ysay">Chef Ysay</option>
+      <option value="Chef Alex">Chef Alex</option>
+    </select>
+  </div>
 </div>
+
 
 <!-- SAVED LISTS BAR -->
 <div class="save-bar" id="saveBar">
@@ -213,7 +238,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
       </select>
     </div>
   </div>
-  <p class="note" style="margin-bottom:10px">★ Click × on any column header to hide it. Hit <strong>Check Against Pantry</strong> any time to refresh. <span style="color:var(--accent)">⚠ Use the same units as your Pantry Inventory (e.g. pcs, pack, bottle, kg) for accurate cross-checking.</span></p>
+  <p class="note" style="margin-bottom:10px"><span style="font-size:13px">⚠ Use the same units as your Pantry Inventory (e.g. pcs, pack, bottle, kg) for accurate cross-checking. Hit <strong>Check Against Pantry</strong> any time to refresh.</span></p>
 
   <!-- TABLE -->
   <div class="tbl-wrap">
@@ -683,17 +708,17 @@ function runCheck() {
   const pName = document.getElementById('projectName').value.trim();
   const client = document.getElementById('clientName').value.trim();
   const shootDate = document.getElementById('shootDate').value.trim();
-  if (!pName || !client || !shootDate) {
-    ['projectName','clientName','shootDate'].forEach(id => {
+  const stylist = document.getElementById('foodStylist').value.trim();
+  if (!pName || !client || !shootDate || !stylist) {
+    ['projectName','clientName','shootDate','foodStylist'].forEach(id => {
       const el = document.getElementById(id);
       if (!el.value.trim()) {
         el.style.borderColor = 'var(--accent)';
         el.style.background = '#FEF0EA';
-        el.placeholder = '⚠ Required';
-        setTimeout(()=>{ el.style.borderColor=''; el.style.background=''; el.placeholder=''; }, 4000);
+        setTimeout(()=>{ el.style.borderColor=''; el.style.background=''; }, 4000);
       }
     });
-    showFieldError('⚠ Please fill in Project Name, Client, and Shoot Date before checking against pantry.');
+    showFieldError('⚠ Please fill in Shoot Date, Client, Project, and Food Stylist before checking against pantry.');
     return;
   }
   const items=getTableItems();
@@ -889,6 +914,8 @@ function exportPDF() {
   const pName = document.getElementById('projectName').value || 'Project';
   const client = document.getElementById('clientName').value || '';
   const shootDate = document.getElementById('shootDate').value || '';
+  const stylist = document.getElementById('foodStylist').value || '';
+  const budget = document.getElementById('projectBudget').value || '';
 
   const byCat = {};
   items.forEach(it => { const k = it.col || 'DRY GOODS'; if (!byCat[k]) byCat[k] = []; byCat[k].push(it.raw); });
@@ -945,8 +972,8 @@ function exportPDF() {
   </div>
   <div class="cover">
     <h1>🍽 ${pName}</h1>
-    <p>${client ? client + ' · ' : ''}${shootDate}</p>
-    <p><strong>${currentDayLabel}</strong> · ${items.length} item${items.length !== 1 ? 's' : ''} to purchase</p>
+    <p>${client ? client + ' · ' : ''}${shootDate}${budget ? ' · Budget: ' + budget : ''}</p>
+    <p><strong>${currentDayLabel}</strong> · ${items.length} item${items.length !== 1 ? 's' : ''}${stylist ? ' · ' + stylist : ''}</p>
   </div>
   ${bodyHTML}
   </body></html>`;
@@ -1055,6 +1082,9 @@ function finishAndSave() {
     document.getElementById('projectName').value = '';
     document.getElementById('clientName').value = '';
     document.getElementById('shootDate').value = '';
+    document.getElementById('sourcingDate').value = '';
+    document.getElementById('projectBudget').value = '';
+    document.getElementById('foodStylist').value = '';
     hardReset('Sourcing Day 1');
     showFieldError('✓ Saved! Ready for a new project.');
   }, 300);
@@ -1111,17 +1141,21 @@ function syncTableDataFromDOM() {
 // LOCALSTORAGE SAVE / LOAD
 // ============================================================
 function makeLabel(pName, client, shootDate, dayLabel) {
-  return `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''} (${dayLabel})`;
+  const stylist = document.getElementById('foodStylist')?.value || '';
+  return `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''}${stylist?' · '+stylist:''} (${dayLabel})`;
 }
 
 function saveCurrentProject(silent) {
   const pName = document.getElementById('projectName').value || 'Untitled Project';
   const client = document.getElementById('clientName').value || '';
   const shootDate = document.getElementById('shootDate').value || '';
+  const sourcingDate = document.getElementById('sourcingDate').value || '';
+  const budget = document.getElementById('projectBudget').value || '';
+  const stylist = document.getElementById('foodStylist').value || '';
   syncTableDataFromDOM();
   const label = makeLabel(pName, client, shootDate, currentDayLabel);
   const snapshot = {
-    pName, client, shootDate,
+    pName, client, shootDate, sourcingDate, budget, stylist,
     tableData: JSON.parse(JSON.stringify(tableData)),
     activeCols: [...activeCols],
     currentDayLabel,
@@ -1233,6 +1267,9 @@ function loadSavedProject(key) {
     document.getElementById('projectName').value = proj.pName || '';
     document.getElementById('clientName').value = proj.client || '';
     document.getElementById('shootDate').value = proj.shootDate || '';
+    document.getElementById('sourcingDate').value = proj.sourcingDate || '';
+    document.getElementById('projectBudget').value = proj.budget || '';
+    if (proj.stylist) document.getElementById('foodStylist').value = proj.stylist;
     tableData = proj.tableData ? JSON.parse(JSON.stringify(proj.tableData)) : [];
     activeCols = proj.activeCols ? [...proj.activeCols] : [...ALL_COLS];
     currentDayLabel = proj.currentDayLabel || 'Sourcing Day 1';
