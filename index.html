@@ -853,79 +853,68 @@ async function exportXLSX(e) {
 
 function exportPDF() {
   stepsCompleted.step3 = true; updateAddDayButton();
-  // Guard: must generate buy list first
   if (!buyItems || buyItems.length === 0) {
     showFieldError('⚠ Generate the Buy List first (Step 2) before exporting PDF.');
     switchStep(2, document.getElementById('stab-2'));
     return;
   }
-  try {
-  const items = buyItems.filter(it=>!combinedItems.has(it.raw)||it.combined);
-  const sponsored = checkResults.filter(r=>r.status==='sp');
-  const pName = document.getElementById('projectName').value||'Project';
-  const client = document.getElementById('clientName').value||'';
-  const shootDate = document.getElementById('shootDate').value||'';
+  const items = buyItems.filter(it => !combinedItems.has(it.raw) || it.combined);
+  const sponsored = checkResults.filter(r => r.status === 'sp');
+  const pName = document.getElementById('projectName').value || 'Project';
+  const client = document.getElementById('clientName').value || '';
+  const shootDate = document.getElementById('shootDate').value || '';
 
   const byCat = {};
-  items.forEach(it=>{ const k=it.col||'DRY GOODS'; if(!byCat[k])byCat[k]=[]; byCat[k].push(it.raw); });
-  const colOrder = [...activeCols,'DRY GOODS'].filter((v,i,a)=>a.indexOf(v)===i);
+  items.forEach(it => { const k = it.col || 'DRY GOODS'; if (!byCat[k]) byCat[k] = []; byCat[k].push(it.raw); });
+  const colOrder = [...activeCols, 'DRY GOODS'].filter((v, i, a) => a.indexOf(v) === i);
 
-  // Build print overlay on current page — no popup
-  let overlay = document.getElementById('pt-pdf-overlay');
-  if (overlay) overlay.remove();
-
-  overlay = document.createElement('div');
-  overlay.id = 'pt-pdf-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:white;z-index:99999;overflow-y:auto;padding:40px;font-family:IBM Plex Sans,sans-serif;';
-
-  let bodyHTML = `
-    <div style="background:#FDC24C;border-radius:8px;padding:20px 24px;margin-bottom:24px;border-bottom:3px solid #053E65;">
-      <h1 style="font-size:20px;color:#053E65;margin:0 0 4px;">🍽 ${pName}</h1>
-      <p style="font-size:12px;color:#053E65;opacity:.8;margin:0;">${client?client+' · ':''}${shootDate}</p>
-      <p style="margin-top:4px;font-weight:600;font-size:13px;color:#053E65;">${currentDayLabel} · ${items.length} item${items.length!==1?'s':''} to purchase</p>
-    </div>`;
-
+  let bodyHTML = '';
   colOrder.forEach(col => {
-    if (!(byCat[col]||[]).length) return;
-    bodyHTML += `<div style="margin-bottom:16px;">
-      <div style="background:#FDC24C;color:#053E65;padding:5px 12px;font-family:DM Mono,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;margin-bottom:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact;">${col}</div>
-      ${byCat[col].map(v=>`<div style="padding:6px 12px;border-bottom:1px dashed #D8D0C4;font-size:13px;">${v}</div>`).join('')}
+    if (!(byCat[col] || []).length) return;
+    bodyHTML += `<div class="cat-block">
+      <div class="cat-hdr">${col}</div>
+      ${byCat[col].map(v => `<div class="item-row">${v}</div>`).join('')}
     </div>`;
   });
-
   if (sponsored.length) {
-    bodyHTML += `<div style="margin-bottom:16px;">
-      <div style="background:#6B4F8A;color:white;padding:5px 12px;font-family:DM Mono,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;margin-bottom:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact;">⭐ CLIENT PROVIDED — DO NOT SOURCE</div>
-      ${sponsored.map(s=>`<div style="padding:6px 12px;border-bottom:1px dashed #D8D0C4;font-size:13px;">${s.raw}</div>`).join('')}
+    bodyHTML += `<div class="cat-block">
+      <div class="cat-hdr sp-hdr">⭐ CLIENT PROVIDED — DO NOT SOURCE</div>
+      ${sponsored.map(s => `<div class="item-row">${s.raw}</div>`).join('')}
     </div>`;
   }
 
-  overlay.innerHTML = `
-    <div style="max-width:680px;margin:0 auto;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;" class="no-print">
-        <span style="font-family:DM Mono,monospace;font-size:11px;color:#7A7166;">Preview — click Print / Save as PDF then close</span>
-        <div style="display:flex;gap:8px;">
-          <button onclick="window.print()" style="padding:8px 16px;background:#C85C2A;color:white;border:none;border-radius:7px;font-weight:600;cursor:pointer;font-size:13px;">🖨 Print / Save PDF</button>
-          <button onclick="document.getElementById('pt-pdf-overlay').remove()" style="padding:8px 16px;background:transparent;border:1px solid #D8D0C4;border-radius:7px;cursor:pointer;font-size:13px;">✕ Close</button>
-        </div>
-      </div>
-      ${bodyHTML}
-    </div>`;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial,sans-serif;padding:32px;max-width:680px;margin:0 auto;color:#1A1612;}
+    .cover{background:#FDC24C;border-radius:6px;padding:18px 22px;margin-bottom:20px;border-bottom:3px solid #053E65;}
+    .cover h1{font-size:18px;color:#053E65;margin:0 0 4px;font-weight:700;}
+    .cover p{font-size:11px;color:#053E65;margin:2px 0;}
+    .cat-block{margin-bottom:14px;}
+    .cat-hdr{background:#FDC24C;color:#053E65;padding:4px 10px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:3px;margin-bottom:3px;}
+    .sp-hdr{background:#6B4F8A!important;color:white!important;}
+    .item-row{padding:5px 10px;border-bottom:1px dashed #D8D0C4;font-size:12px;}
+    .item-row:last-child{border-bottom:none;}
+  </style></head><body>
+  <div class="cover">
+    <h1>🍽 ${pName}</h1>
+    <p>${client ? client + ' · ' : ''}${shootDate}</p>
+    <p><strong>${currentDayLabel}</strong> · ${items.length} item${items.length !== 1 ? 's' : ''} to purchase</p>
+  </div>
+  ${bodyHTML}
+  </body></html>`;
 
-  document.body.appendChild(overlay);
-
-  // Add print styles
-  let printStyle = document.getElementById('pt-print-style');
-  if (!printStyle) {
-    printStyle = document.createElement('style');
-    printStyle.id = 'pt-print-style';
-    document.head.appendChild(printStyle);
-  }
-  printStyle.textContent = `@media print { body > *:not(#pt-pdf-overlay) { display:none !important; } #pt-pdf-overlay { position:static !important; } .no-print { display:none !important; } @page { margin:15mm; } }`;
-  } catch(err) {
-    showFieldError('⚠ PDF export error: ' + err.message);
-    console.error('exportPDF error:', err);
-  }
+  // Save directly to downloads as .html file (opens correctly in browser as PDF-ready)
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const filename = `${pName.replace(/\s+/g,'-')}_${currentDayLabel.replace(/\s+/g,'-')}_Buy-List.html`;
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showFieldError('✓ Buy list saved to downloads. Open the file and use File → Print → Save as PDF.');
 }
 
 
@@ -1029,16 +1018,20 @@ function finishAndAddDay() {
     return;
   }
   if (!stepsCompleted.step1 || !stepsCompleted.step2 || !stepsCompleted.step3) {
-    showFieldError('⚠ Complete all 3 steps before adding a new sourcing day.');
+    showFieldError('⚠ Complete all 3 steps (Pantry Check, Buy List, Export) before adding a new sourcing day.');
     return;
   }
-  syncTableDataFromDOM();
-  saveCurrentProject(true);
+  // Capture day number before reset
   const match = currentDayLabel.match(/\d+/);
   const prevN = match ? parseInt(match[0]) : 1;
   const nextN = prevN + 1;
-  hardReset(`Sourcing Day ${nextN}`);
-  showFieldError(`✓ Sourcing Day ${prevN} saved. Now editing Sourcing Day ${nextN}.`);
+  const nextLabel = `Sourcing Day ${nextN}`;
+  // Sync and save FIRST, then reset
+  syncTableDataFromDOM();
+  saveCurrentProject(true);
+  // Now hard reset — tableData is already saved, safe to wipe
+  hardReset(nextLabel);
+  showFieldError(`✓ Sourcing Day ${prevN} saved. Now editing ${nextLabel}.`);
 }
 
 // ============================================================
