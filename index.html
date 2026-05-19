@@ -953,6 +953,7 @@ function exportPDF() {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   showFieldError('✓ Saved to Downloads: ' + filename + ' — open it in browser, then File → Print → Save as PDF');
+}
 
 
 function exportCSV() {
