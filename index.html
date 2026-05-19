@@ -186,7 +186,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
 <!-- SAVED LISTS BAR -->
 <div class="save-bar" id="saveBar">
-  <span>SAVED LISTS:</span>
+  <span>SAVED LISTS: <span style="font-weight:400;opacity:.6;text-transform:none;letter-spacing:0">click to select · double-click to load</span></span>
   <div id="savedListChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
   <button class="btn btn-ghost btn-sm" onclick="saveCurrentProject()" style="margin-left:4px">💾 Save</button>
   <button class="btn btn-ghost btn-sm" onclick="clearSaved()" style="color:var(--accent)">Clear All</button>
@@ -1219,19 +1219,34 @@ function loadSavedProject(key) {
     const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
     const proj = existing.find(p => p.key === key);
     if (!proj) return;
-    // Confirm if table has data
+
+    // Check if current table has unsaved data
+    syncTableDataFromDOM();
     const hasData = tableData.some(r => Object.values(r.cells||{}).some(v => v && v.trim()));
-    if (hasData) {
-      const ok = confirm(`Load "${proj.label}"? Unsaved changes to the current table will be lost.`);
-      if (!ok) return;
+    const isDifferentDay = proj.currentDayLabel !== currentDayLabel;
+
+    if (hasData || isDifferentDay) {
+      const currentLabel = makeLabel(
+        document.getElementById('projectName').value,
+        document.getElementById('clientName').value,
+        document.getElementById('shootDate').value,
+        currentDayLabel
+      );
+      const msg = isDifferentDay
+        ? `You are currently editing "${currentDayLabel}". Loading "${proj.label}" will replace the current table.\n\nSave current work first?`
+        : `Loading "${proj.label}" will replace unsaved changes in the current table.\n\nContinue?`;
+      if (!confirm(msg)) return;
     }
+
+    // Load project
     document.getElementById('projectName').value = proj.pName || '';
     document.getElementById('clientName').value = proj.client || '';
     document.getElementById('shootDate').value = proj.shootDate || '';
     tableData = proj.tableData ? JSON.parse(JSON.stringify(proj.tableData)) : [];
     activeCols = proj.activeCols ? [...proj.activeCols] : [...ALL_COLS];
     currentDayLabel = proj.currentDayLabel || 'Sourcing Day 1';
-    // Hard reset then re-render with loaded data
+
+    // Clear DOM and re-render
     const tblBody = document.getElementById('tblBody');
     const tblHead = document.getElementById('tblHead');
     if (tblBody) tblBody.innerHTML = '';
@@ -1240,6 +1255,12 @@ function loadSavedProject(key) {
     renderColManager();
     renderTable();
     resetState();
+
+    // Clear chip highlights
+    document.querySelectorAll('.saved-item').forEach(c => {
+      c.style.background = ''; c.style.borderColor = ''; c.style.color = '';
+    });
+
     showFieldError('✓ Loaded: ' + proj.label);
   } catch(e) { showFieldError('⚠ Could not load saved project.'); }
 }
@@ -1269,23 +1290,33 @@ function renderSavedChips() {
       return;
     }
     wrap.innerHTML = existing.map(p => `
-      <div class="saved-item" title="Double-click to load">
-        <span
-          ondblclick="loadSavedProject('${p.key}')"
-          onclick="highlightChip(this)"
-          style="cursor:pointer"
-        >${p.label} <span style="opacity:.5;font-size:10px">${p.savedAt}</span></span>
-        <button onclick="deleteSaved('${p.key}')" title="Delete this saved list">×</button>
+      <div class="saved-item" id="chip-${p.key}" title="Click to select · Double-click to load"
+        onclick="selectChip('${p.key}')"
+        ondblclick="loadSavedProject('${p.key}')"
+        style="cursor:pointer;transition:all .15s">
+        <span>${p.label}</span>
+        <span style="opacity:.4;font-size:10px;margin-left:2px">${p.savedAt}</span>
+        <button onclick="event.stopPropagation();deleteSaved('${p.key}')" title="Delete" style="margin-left:4px">×</button>
       </div>`).join('');
   } catch(e) { wrap.innerHTML = ''; }
 }
 
-function highlightChip(el) {
-  // Single click — highlight to show it's selected, hint at double-click
-  document.querySelectorAll('.saved-item span').forEach(s => s.style.fontWeight = '');
-  el.style.fontWeight = '600';
-  showFieldError('Double-click to load: ' + el.textContent.trim());
-  setTimeout(() => { el.style.fontWeight = ''; }, 3000);
+function selectChip(key) {
+  // Single click — highlight chip, show hint
+  document.querySelectorAll('.saved-item').forEach(c => {
+    c.style.background = ''; c.style.borderColor = ''; c.style.color = '';
+  });
+  const chip = document.getElementById('chip-' + key);
+  if (chip) {
+    chip.style.background = '#053E65';
+    chip.style.borderColor = '#053E65';
+    chip.style.color = 'white';
+    // Store selected key for potential keyboard load
+    chip.dataset.selected = 'true';
+  }
+  const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+  const proj = existing.find(p => p.key === key);
+  if (proj) showFieldError('Selected: ' + proj.label + ' — double-click to load');
 }
 
 // ============================================================
