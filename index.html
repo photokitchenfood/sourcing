@@ -468,6 +468,32 @@ async function loadInventory() {
   }
 }
 
+function normalizeUnit(u) {
+  if (!u) return '';
+  const s = u.toLowerCase().trim();
+  // Normalize plurals and case variations
+  const map = {
+    'packs': 'pack', 'Pack': 'pack', 'Packs': 'pack',
+    'pieces': 'pcs', 'piece': 'pcs', 'Pcs': 'pcs', 'PCS': 'pcs',
+    'slabs': 'slab', 'Slab': 'slab',
+    'bottles': 'bottle', 'Bottle': 'bottle',
+    'jars': 'jar', 'Jar': 'jar',
+    'cans': 'can', 'Can': 'can',
+    'boxes': 'box', 'Box': 'box',
+    'bundles': 'bundle', 'Bundle': 'bundle',
+    'trays': 'tray', 'Tray': 'tray', 'white tray': 'tray',
+    'dozen': 'dozen', 'Dozen': 'dozen',
+    'bars': 'bar', 'Bar': 'bar',
+    'tubs': 'tub', 'Tub': 'tub',
+    'rolls': 'roll', 'Roll': 'roll',
+    'sachets': 'sachet', 'Sachet': 'sachet',
+    'liters': 'L', 'litres': 'L', 'liter': 'L',
+    'kilos': 'kg', 'kilo': 'kg',
+    'grams': 'g', 'gram': 'g',
+  };
+  return map[u.trim()] || s;
+}
+
 function parseInvCSV(text, tabName) {
   const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
   function pl(line) {
@@ -478,20 +504,22 @@ function parseInvCSV(text, tabName) {
   const rows = lines.filter(l=>l.trim()).map(pl);
   if (rows.length < 2) return [];
   const h = rows[0].map(x=>x.toLowerCase().trim());
-  const ni = h.findIndex(x=>x.includes('item')||x==='name'||x==='ingredient'||x==='product');
-  const ci = h.findIndex(x=>x.includes('cat')||x.includes('type')||x.includes('section'));
-  const si = h.findIndex(x=>x.includes('stock')||x.includes('qty')||x.includes('quantity'));
-  const ui = h.findIndex(x=>x.includes('unit'));
-  const sti = h.findIndex(x=>x.includes('status'));
+  // Match your actual pantry sheet headers: Category, Item name, Brand, Description, Stock, Unit, Weight, Status, Notes
+  const ni = h.findIndex(x=>x==='item name'||x.includes('item')||x==='name'||x==='ingredient'||x==='product');
+  const ci = h.findIndex(x=>x==='category'||x.includes('cat'));
+  const si = h.findIndex(x=>x==='stock'||x.includes('qty')||x.includes('quantity'));
+  const ui = h.findIndex(x=>x==='unit'||x==='units');
+  const sti = h.findIndex(x=>x==='status');
   if (ni < 0) return [];
   return rows.slice(1)
-    .filter(r => r[ni] && r[ni].trim() && r[ni].trim() !== '-' && r[ni].trim() !== '')
+    .filter(r => r[ni] && r[ni].trim() && r[ni].trim() !== '-')
     .map(r => ({
       name: r[ni]?.trim() || '',
       cat: ci >= 0 && r[ci]?.trim() ? r[ci].trim() : (tabName || 'General'),
       stock: si >= 0 ? (parseFloat(r[si]) || 0) : 1,
-      unit: ui >= 0 ? r[ui]?.trim() || '' : '',
-      status: sti >= 0 ? r[sti]?.trim() || 'In stock' : 'In stock',
+      unit: normalizeUnit(ui >= 0 ? r[ui]?.trim() : ''),
+      // Use Status column as ground truth — 'In stock' = available regardless of qty
+      status: sti >= 0 ? r[sti]?.trim() : (si >= 0 && parseFloat(r[si]) > 0 ? 'In stock' : 'Re-purchase needed'),
       tab: tabName || 'General'
     }));
 }
@@ -661,7 +689,36 @@ function getTableItems() {
 // ============================================================
 // PANTRY MATCHING
 // ============================================================
+function cleanForMatch(raw) {
+  let s = raw.toLowerCase();
+  s = s.replace(/[\d.,]+\s*(packs?|pcs?|pieces?|kg|g|ml|l|bottles?|cans?|jars?|bundles?|slabs?|dozen|boxes?|bars?|trays?|rolls?|sachets?|tubs?|fingers?|cups?|tbsp?|tsp?|servings?)\b/gi,'');
+  s = s.replace(/^[\d.,\s]+/, '').replace(/[,;]+$/, '').trim();
+  s = s.replace(/\s+/g,' ').trim();
+  s = s.replace(/[^a-z0-9 ]/g,'').trim();
+  return s;
+}
+
 function matchItem(name) {
+  const clean = cleanForMatch(name);
+  if (!clean) return null;
+  const words = clean.split(' ').filter(w=>w.length>1);
+  let best=0, bestItem=null;
+  for (const item of INVENTORY) {
+    const iname = item.name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
+    let score = 0;
+    if (iname === clean) score = 100;
+    else if (clean.length >= 4 && iname.includes(clean)) score = 88;
+    else if (iname.length >= 4 && clean.includes(iname)) score = 82;
+    else if (words.length > 0) {
+      const iw = iname.split(' ').filter(w=>w.length>1);
+      const matched = words.filter(w => iw.some(x=>x===w));
+      if (matched.length === words.length && words.length >= 1) score = 75;
+      else if (matched.length >= 1 && matched.length >= words.length * 0.7) score = 60;
+    }
+    if (score > best) { best = score; bestItem = item; }
+  }
+  return best >= 60 ? bestItem : null;
+}nction matchItem(name) {
   // Clean name — strip quantity prefix/suffix for matching
   let clean=name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
   // Remove common quantity patterns: "2pcs", "1kg", "3 bundles", etc.
@@ -728,7 +785,11 @@ function runCheck() {
   checkResults=items.map(it=>{
     if(it.starred)return{...it,status:'sp',inv:null};
     const inv=matchItem(it.raw);
-    const status=!inv?'buy':inv.stock===0||inv.status==='Re-purchase needed'?'buy':inv.stock<=1?'low':'ok';
+    const invStatus = inv ? (inv.status||'').toLowerCase() : '';
+    const status = !inv ? 'buy'
+      : (invStatus.includes('re-purchase')||invStatus.includes('repurchase')||invStatus==='out of stock'||inv.stock===0) ? 'buy'
+      : (invStatus.includes('low')||invStatus.includes('running low')) ? 'low'
+      : 'ok';
     return{...it,status,inv};
   });
   } catch(err) {
@@ -756,11 +817,16 @@ function runCheck() {
     const colItems = byCol[col] || [];
     if (!colItems.length) return;
     html += `<div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 5px;padding-bottom:4px;border-bottom:1px solid var(--border)">${col}</div>`;
-    html += colItems.map(r => {
+    let globalIdx = 0;
+    html += colItems.map((r) => { const idx = checkResults.indexOf(r);
       const cls = r.status==='ok'?'ok':r.status==='low'?'low':r.status==='sp'?'sp':'buy';
       const badge = r.status==='ok'?'<span class="badge b-ok">In Stock</span>':r.status==='low'?'<span class="badge b-low">Low</span>':r.status==='sp'?'<span class="badge b-sp">⭐ Client</span>':'<span class="badge b-buy">Buy</span>';
       const stock = r.inv ? `${r.inv.stock} ${r.inv.unit} in pantry` : r.status==='sp'?'Client provided':'Not in pantry';
-      return `<div class="check-item ${cls}"><div><div class="ci-name">${r.raw}</div><div class="ci-stock">${stock}</div></div>${badge}</div>`;
+      const statusCycle = {'ok':'low','low':'buy','buy':'ok'};
+      return `<div class="check-item ${cls}" id="ci-${idx}">
+        <div style="flex:1"><div class="ci-name">${r.raw}</div><div class="ci-stock">${stock}</div></div>
+        <div style="cursor:pointer" onclick="overrideStatus(${idx})" title="Click to override status">${badge}</div>
+      </div>`;
     }).join('');
   });
   document.getElementById('checkOut').innerHTML = html;
@@ -798,6 +864,39 @@ function detectCombines(items) {
 // ============================================================
 let buyItems=[];
 let combinedItems=new Set(); // keys of items that have been combined
+
+function overrideStatus(idx) {
+  if (!checkResults[idx]) return;
+  const cycle = {ok:'low', low:'buy', buy:'ok'};
+  checkResults[idx].status = cycle[checkResults[idx].status] || 'buy';
+  // Re-render just the check results
+  const byCol = {};
+  checkResults.forEach(r => { if(!byCol[r.col])byCol[r.col]=[]; byCol[r.col].push(r); });
+  let html = '';
+  activeCols.forEach(col => {
+    const colItems = byCol[col] || [];
+    if (!colItems.length) return;
+    html += `<div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 5px;padding-bottom:4px;border-bottom:1px solid var(--border)">${col}</div>`;
+    html += colItems.map(r => {
+      const ridx = checkResults.indexOf(r);
+      const cls = r.status==='ok'?'ok':r.status==='low'?'low':r.status==='sp'?'sp':'buy';
+      const badge = r.status==='ok'?'<span class="badge b-ok">In Stock</span>':r.status==='low'?'<span class="badge b-low">Low</span>':r.status==='sp'?'<span class="badge b-sp">⭐ Client</span>':'<span class="badge b-buy">Buy</span>';
+      const stock = r.inv ? `${r.inv.stock} ${r.inv.unit} in pantry` : r.status==='sp'?'Client provided':'Not in pantry';
+      return `<div class="check-item ${cls}">
+        <div style="flex:1"><div class="ci-name">${r.raw}</div><div class="ci-stock">${stock}</div></div>
+        <div style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to override status">${badge}</div>
+      </div>`;
+    }).join('');
+  });
+  document.getElementById('checkOut').innerHTML = html;
+  // Update summary counts
+  let ok=0,low=0,buy=0;
+  checkResults.forEach(r=>{if(r.status==='ok')ok++;else if(r.status==='low')low++;else if(r.status==='buy')buy++;});
+  document.getElementById('summary1').innerHTML = `
+    <div class="tile tile-ok"><span class="tile-num">${ok}</span><span class="tile-lbl">In Stock</span></div>
+    <div class="tile tile-low"><span class="tile-num">${low}</span><span class="tile-lbl">Low Stock</span></div>
+    <div class="tile tile-buy"><span class="tile-num">${buy}</span><span class="tile-lbl">Need to Buy</span></div>`;
+}
 
 function buildBuyList() {
   buyItems=checkResults.filter(r=>r.status==='buy'||r.status==='low');
