@@ -718,7 +718,9 @@ function matchItem(name) {
     if (score > best) { best = score; bestItem = item; }
   }
   return best >= 60 ? bestItem : null;
-}nction matchItem(name) {
+}
+
+function matchItem(name) {
   // Clean name — strip quantity prefix/suffix for matching
   let clean=name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
   // Remove common quantity patterns: "2pcs", "1kg", "3 bundles", etc.
