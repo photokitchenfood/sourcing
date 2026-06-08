@@ -827,12 +827,21 @@ function runCheck() {
   checkResults=items.map(it=>{
     if(it.starred)return{...it,status:'sp',inv:null};
     const inv=matchItem(it.raw);
-    const invStatus = inv ? (inv.status||'').toLowerCase() : '';
-    const status = !inv ? 'buy'
-      : (invStatus.includes('re-purchase')||invStatus.includes('repurchase')||invStatus==='out of stock'||inv.stock===0) ? 'buy'
-      : (invStatus.includes('low')||invStatus.includes('running low')) ? 'low'
-      : 'ok';
-    return{...it,status,inv};
+    const invStatus = inv ? (inv.status||'').toLowerCase().trim() : '';
+    // Parse sourcing quantity for comparison
+    const sqm = it.raw.match(/[,\s]+([\d.]+)\s*(?:pack|pcs|can|jar|bottle|box|bar|slab|tub|roll|gallon|tray|bag|tube|kg|g|ml|l)?s?\b/i);
+    const sourcingQty = sqm ? parseFloat(sqm[1]) : null;
+    const pantryStock = inv ? (parseFloat(inv.stock)||0) : 0;
+    const notEnough = sourcingQty && inv && pantryStock < sourcingQty;
+    // Invalid: not in pantry AND has a cooking/prep word
+    const PREP_WORDS = /\b(boiled?|hard-boiled|soft-boiled|hardboiled|fried|grilled|roasted|sautéed|sauteed|steamed|baked|cooked|chopped|sliced|diced|minced|beaten|whipped|blanched|poached|braised|seared|caramelized|caramelised|marinated|shredded|mashed|puréed|pureed|rendered|toasted)\b/i;
+    const isInvalid = !inv && PREP_WORDS.test(it.raw);
+    const status = isInvalid ? 'invalid'
+      : !inv ? 'buy'
+      : (invStatus.includes('re-purchase')||invStatus.includes('repurchase')||invStatus==='out of stock'||pantryStock===0) ? 'buy'
+      : (invStatus.includes('low')||notEnough) ? 'low'
+      : (invStatus.includes('in stock')) ? 'ok'
+      : pantryStock > 0 ? 'ok' : 'buy';
   });
   } catch(err) {
     showFieldError('⚠ Error during pantry check: ' + err.message);
@@ -914,35 +923,65 @@ function renderCheckResults() {
   const byCol = {};
   checkResults.forEach(r => { if(!byCol[r.col])byCol[r.col]=[]; byCol[r.col].push(r); });
   let html = '';
+  // Count invalids for summary
+  const invalidCount = checkResults.filter(r=>r.status==='invalid').length;
+  if (invalidCount > 0) {
+    html += `<div style="background:#FEF3CD;border:1px solid #F0D070;border-radius:7px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#7A5C00">
+      ⚠ <strong>${invalidCount} item${invalidCount>1?'s':''} flagged as invalid</strong> — not in pantry and appears to be a cooked/prepared item. Delete or keep as reference.
+    </div>`;
+  }
   activeCols.forEach(col => {
     const colItems = byCol[col] || [];
     if (!colItems.length) return;
     html += `<div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 5px;padding-bottom:4px;border-bottom:1px solid var(--border)">${col}</div>`;
     html += colItems.map(r => {
       const ridx = checkResults.indexOf(r);
-      const cls = r.status==='ok'?'ok':r.status==='low'?'low':'buy';
-      const badge = r.status==='ok'
-        ? `<span class="badge b-ok" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to change status">In Stock</span>`
-        : r.status==='low'
-        ? `<span class="badge b-low" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to change status">Low</span>`
-        : `<span class="badge b-buy" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to change status">Buy</span>`;
+
+      // Badge logic — toggle only for ok/low; buy-from-pantry = no toggle; invalid = no toggle
+      let badge, cls;
+      if (r.status === 'invalid') {
+        cls = 'buy';
+        badge = `<span class="badge" style="background:#9B7700;color:white;font-size:9px;font-family:'DM Mono',monospace;font-weight:600;padding:3px 7px;border-radius:100px;white-space:nowrap">Invalid</span>`;
+      } else if (r.status === 'ok') {
+        cls = 'ok';
+        badge = `<span class="badge b-ok" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to mark as Buy">In Stock</span>`;
+      } else if (r.status === 'low') {
+        cls = 'low';
+        badge = `<span class="badge b-low" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to mark as Buy">Low</span>`;
+      } else if (r.status === 'buy' && r.inv) {
+        // In pantry but marked buy via override — can toggle back
+        cls = 'buy';
+        badge = `<span class="badge b-buy" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to change status">Buy</span>`;
+      } else {
+        // Not in pantry at all — no toggle, just buy
+        cls = 'buy';
+        badge = `<span class="badge b-buy" title="Not in pantry">Buy</span>`;
+      }
+
       const sourcingQtyMatch2 = r.raw.match(/[,\s]+(\d+(?:\.\d+)?)\s*(?:pack|pcs|can|jar|bottle|box|bar|slab|tub|roll|gallon|tray|bag|tube|kg|g|ml|l)?s?\b/i);
       const sourcingQty2 = sourcingQtyMatch2 ? parseFloat(sourcingQtyMatch2[1]) : null;
       const pantryStock2 = r.inv ? (parseFloat(r.inv.stock)||0) : 0;
       const notEnough2 = sourcingQty2 && r.inv && pantryStock2 < sourcingQty2;
       const stockNote = notEnough2 ? ` ⚠ need ${sourcingQty2}, have ${pantryStock2}` : '';
-      const stock = r.inv ? `${r.inv.stock} ${r.inv.unit} in pantry${stockNote}` : 'Not in pantry';
-      // Show qty input only when status is buy
-      const qtyInput = r.status === 'buy'
-        ? `<div style="margin-top:6px;display:flex;align-items:center;gap:6px">
-            <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted)">QTY TO BUY:</span>
-            <input type="text" value="${r.buyQty || r.raw}" 
-              style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:'DM Mono',monospace;width:160px;background:white"
-              oninput="checkResults[${ridx}].buyQty=this.value"
-              placeholder="e.g. 2 packs">
+      const stock = r.inv ? `${r.inv.stock} ${r.inv.unit} in pantry${stockNote}` : r.status==='invalid' ? 'Cooked/prepared item — not a raw ingredient' : 'Not in pantry';
+
+      // Qty input: show for buy (not invalid, not not-in-pantry without override)
+      const showQty = r.status === 'buy' || (r.status === 'invalid');
+      const qtyInput = showQty
+        ? `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            ${r.status==='invalid'
+              ? `<button onclick="removeResult(${ridx})" style="padding:3px 10px;background:var(--accent);color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer">✕ Remove</button>
+                 <button onclick="keepResult(${ridx})" style="padding:3px 10px;background:transparent;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer">Keep as Buy</button>`
+              : `<span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted)">QTY TO BUY:</span>
+                 <input type="text" value="${r.buyQty || r.raw}"
+                   style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:'DM Mono',monospace;width:160px;background:white"
+                   oninput="checkResults[${ridx}].buyQty=this.value"
+                   placeholder="e.g. 2 packs">`
+            }
           </div>`
         : '';
-      return `<div class="check-item ${cls}">
+
+      return `<div class="check-item ${cls}" id="cr-${ridx}">
         <div style="flex:1">
           <div class="ci-name">${r.raw}</div>
           <div class="ci-stock">${stock}</div>
@@ -964,17 +1003,44 @@ function renderCheckResults() {
 
 function overrideStatus(idx) {
   if (!checkResults[idx]) return;
-  const cycle = {ok:'low', low:'buy', buy:'ok'};
-  checkResults[idx].status = cycle[checkResults[idx].status] || 'buy';
-  // Pre-fill buyQty with original raw text when toggled to buy
-  if (checkResults[idx].status === 'buy' && !checkResults[idx].buyQty) {
-    checkResults[idx].buyQty = checkResults[idx].raw;
+  const r = checkResults[idx];
+  // Only allow toggle if item has a pantry match (inv exists) or was overridden before
+  if (!r.inv && r.status !== 'buy') return;
+  if (r.status === 'invalid') return;
+  // Cycle: ok → buy, low → buy, buy → ok (back to original inv-based status)
+  if (r.status === 'ok' || r.status === 'low') {
+    r.status = 'buy';
+    if (!r.buyQty) r.buyQty = r.raw;
+  } else if (r.status === 'buy' && r.inv) {
+    // Restore to original inventory status
+    const invStatus = (r.inv.status||'').toLowerCase();
+    r.status = invStatus.includes('low') ? 'low' : 'ok';
+    r.buyQty = null;
   }
   renderCheckResults();
 }
 
+function removeResult(idx) {
+  checkResults.splice(idx, 1);
+  renderCheckResults();
+  // Update summary
+  let ok=0,low=0,buy=0;
+  checkResults.forEach(r=>{if(r.status==='ok')ok++;else if(r.status==='low')low++;else if(r.status==='buy'||r.status==='invalid')buy++;});
+  document.getElementById('summary1').innerHTML = `
+    <div class="tile tile-ok"><span class="tile-num">${ok}</span><span class="tile-lbl">In Stock</span></div>
+    <div class="tile tile-low"><span class="tile-num">${low}</span><span class="tile-lbl">Low Stock</span></div>
+    <div class="tile tile-buy"><span class="tile-num">${buy}</span><span class="tile-lbl">Need to Buy</span></div>`;
+}
+
+function keepResult(idx) {
+  if (!checkResults[idx]) return;
+  checkResults[idx].status = 'buy';
+  if (!checkResults[idx].buyQty) checkResults[idx].buyQty = checkResults[idx].raw;
+  renderCheckResults();
+}
+
 function buildBuyList() {
-  // Use buyQty override if set, otherwise use raw
+  // Exclude invalid items unless manually kept as buy
   buyItems=checkResults.filter(r=>r.status==='buy'||r.status==='low').map(r=>({
     ...r,
     raw: r.status==='buy' && r.buyQty ? r.buyQty : r.raw
