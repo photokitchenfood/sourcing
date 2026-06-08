@@ -842,6 +842,7 @@ function runCheck() {
       : (invStatus.includes('low')||notEnough) ? 'low'
       : (invStatus.includes('in stock')) ? 'ok'
       : pantryStock > 0 ? 'ok' : 'buy';
+    return {...it, status, inv};
   });
   } catch(err) {
     showFieldError('⚠ Error during pantry check: ' + err.message);
