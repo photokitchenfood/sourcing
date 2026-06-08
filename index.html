@@ -951,10 +951,10 @@ function renderCheckResults() {
         badge = `<span class="badge b-ok" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to mark as Buy">In Stock</span>`;
       } else if (r.status === 'low') {
         cls = 'low';
-        badge = `<span class="badge b-low" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to mark as Buy">Low</span>`;
+        badge = `<span class="badge b-low" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to add to Buy List">Low</span>`;
       } else if (r.status === 'buy' && r.inv) {
         cls = 'buy';
-        badge = `<span class="badge b-buy" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to restore original status">Buy</span>`;
+        badge = `<span class="badge b-buy" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to remove from Buy List">Buy</span>`;
       } else {
         // Not in pantry — no toggle, tap to edit qty only
         cls = 'buy';
@@ -992,7 +992,7 @@ function renderCheckResults() {
 
       return `<div class="check-item ${cls}" id="cr-${ridx}">
         <div style="flex:1">
-          <div class="ci-name">${r.raw}</div>
+          <div class="ci-name">${r.status==='buy' && r.buyQty && r.buyQty !== r.raw ? r.buyQty : r.raw}${r.status==='buy' && r.buyQty && r.buyQty !== r.raw ? ' <span style="font-size:9px;opacity:.5;font-family:DM Mono,monospace">(edited)</span>' : ''}</div>
           <div class="ci-stock">${stock}</div>
           ${expandedPanel}
         </div>
@@ -1016,20 +1016,26 @@ function renderCheckResults() {
 function overrideStatus(idx) {
   if (!checkResults[idx]) return;
   const r = checkResults[idx];
-  // Only allow toggle if item has a pantry match (inv exists) or was overridden before
-  if (!r.inv && r.status !== 'buy') return;
   if (r.status === 'invalid') return;
-  // Cycle: ok → buy, low → buy, buy → ok (back to original inv-based status)
-  if (r.status === 'ok' || r.status === 'low') {
+  if (!r.inv && r.status !== 'buy') return; // not in pantry, no toggle
+
+  if (r.status === 'ok') {
+    // In Stock → Buy (with qty input)
     r.status = 'buy';
     if (!r.buyQty) r.buyQty = r.raw;
+    expandedIdx = idx; // auto-open qty input
+  } else if (r.status === 'low') {
+    // Low → Buy (with qty input)
+    r.status = 'buy';
+    if (!r.buyQty) r.buyQty = r.raw;
+    expandedIdx = idx; // auto-open qty input
   } else if (r.status === 'buy' && r.inv) {
-    // Restore to original inventory status
+    // Buy → restore original status (Low or In Stock), clear qty
     const invStatus = (r.inv.status||'').toLowerCase();
     r.status = invStatus.includes('low') ? 'low' : 'ok';
     r.buyQty = null;
+    expandedIdx = -1;
   }
-  expandedIdx = -1;
   renderCheckResults();
 }
 
