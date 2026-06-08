@@ -866,26 +866,6 @@ function runCheck() {
   sum.style.display = 'grid';
 
   // Build check results list grouped by column
-  const byCol = {};
-  checkResults.forEach(r => { if(!byCol[r.col]) byCol[r.col]=[]; byCol[r.col].push(r); });
-  let html = '';
-  activeCols.forEach(col => {
-    const colItems = byCol[col] || [];
-    if (!colItems.length) return;
-    html += `<div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 5px;padding-bottom:4px;border-bottom:1px solid var(--border)">${col}</div>`;
-    let globalIdx = 0;
-    html += colItems.map((r) => { const idx = checkResults.indexOf(r);
-      const cls = r.status==='ok'?'ok':r.status==='low'?'low':r.status==='sp'?'sp':'buy';
-      const badge = r.status==='ok'?'<span class="badge b-ok">In Stock</span>':r.status==='low'?'<span class="badge b-low">Low</span>':r.status==='sp'?'<span class="badge b-sp">⭐ Client</span>':'<span class="badge b-buy">Buy</span>';
-      const stock = r.inv ? `${r.inv.stock} ${r.inv.unit} in pantry` : r.status==='sp'?'Client provided':'Not in pantry';
-      const statusCycle = {'ok':'low','low':'buy','buy':'ok'};
-      return `<div class="check-item ${cls}" id="ci-${idx}">
-        <div style="flex:1"><div class="ci-name">${r.raw}</div><div class="ci-stock">${stock}</div></div>
-        <div style="cursor:pointer" onclick="overrideStatus(${idx})" title="Click to override status">${badge}</div>
-      </div>`;
-    }).join('');
-  });
-  document.getElementById('checkOut').innerHTML = html;
   document.getElementById('toBuyListWrap').style.display = 'block';
   document.getElementById('rightSub').textContent = `${items.length} items · ${ok} in stock · ${low+buy} to source`;
   stepsCompleted.step1 = true;
