@@ -784,6 +784,7 @@ function matchItem(name) {
 // STEP 1: PANTRY CHECK
 // ============================================================
 let checkResults=[];
+let expandedIdx = -1; // which item has its edit panel open
 
 function showFieldError(msg) {
   let banner = document.getElementById('field-error-banner');
@@ -924,25 +925,27 @@ function renderCheckResults() {
   const byCol = {};
   checkResults.forEach(r => { if(!byCol[r.col])byCol[r.col]=[]; byCol[r.col].push(r); });
   let html = '';
-  // Count invalids for summary
+
   const invalidCount = checkResults.filter(r=>r.status==='invalid').length;
   if (invalidCount > 0) {
     html += `<div style="background:#FEF3CD;border:1px solid #F0D070;border-radius:7px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#7A5C00">
-      ⚠ <strong>${invalidCount} item${invalidCount>1?'s':''} flagged as invalid</strong> — not in pantry and appears to be a cooked/prepared item. Delete or keep as reference.
+      ⚠ <strong>${invalidCount} item${invalidCount>1?'s':''} flagged as Invalid</strong> — not in pantry and appears to be a cooked/prepared item.
     </div>`;
   }
+
   activeCols.forEach(col => {
     const colItems = byCol[col] || [];
     if (!colItems.length) return;
     html += `<div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 5px;padding-bottom:4px;border-bottom:1px solid var(--border)">${col}</div>`;
     html += colItems.map(r => {
       const ridx = checkResults.indexOf(r);
+      const isExpanded = (expandedIdx === ridx);
 
-      // Badge logic — toggle only for ok/low; buy-from-pantry = no toggle; invalid = no toggle
+      // Badge + click behavior per status
       let badge, cls;
       if (r.status === 'invalid') {
         cls = 'buy';
-        badge = `<span class="badge" style="background:#9B7700;color:white;font-size:9px;font-family:'DM Mono',monospace;font-weight:600;padding:3px 7px;border-radius:100px;white-space:nowrap">Invalid</span>`;
+        badge = `<span class="badge" style="background:#9B7700;color:white;font-size:9px;font-family:'DM Mono',monospace;font-weight:600;padding:3px 7px;border-radius:100px;white-space:nowrap;cursor:pointer" onclick="toggleExpand(${ridx})" title="Tap to expand options">Invalid</span>`;
       } else if (r.status === 'ok') {
         cls = 'ok';
         badge = `<span class="badge b-ok" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to mark as Buy">In Stock</span>`;
@@ -950,57 +953,65 @@ function renderCheckResults() {
         cls = 'low';
         badge = `<span class="badge b-low" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to mark as Buy">Low</span>`;
       } else if (r.status === 'buy' && r.inv) {
-        // In pantry but marked buy via override — can toggle back
         cls = 'buy';
-        badge = `<span class="badge b-buy" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to change status">Buy</span>`;
+        badge = `<span class="badge b-buy" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to restore original status">Buy</span>`;
       } else {
-        // Not in pantry at all — no toggle, just buy
+        // Not in pantry — no toggle, tap to edit qty only
         cls = 'buy';
-        badge = `<span class="badge b-buy" title="Not in pantry">Buy</span>`;
+        badge = `<span class="badge b-buy" style="cursor:pointer" onclick="toggleExpand(${ridx})" title="Tap to edit quantity">Buy</span>`;
       }
 
-      const sourcingQtyMatch2 = r.raw.match(/[,\s]+(\d+(?:\.\d+)?)\s*(?:pack|pcs|can|jar|bottle|box|bar|slab|tub|roll|gallon|tray|bag|tube|kg|g|ml|l)?s?\b/i);
-      const sourcingQty2 = sourcingQtyMatch2 ? parseFloat(sourcingQtyMatch2[1]) : null;
-      const pantryStock2 = r.inv ? (parseFloat(r.inv.stock)||0) : 0;
-      const notEnough2 = sourcingQty2 && r.inv && pantryStock2 < sourcingQty2;
-      const stockNote = notEnough2 ? ` ⚠ need ${sourcingQty2}, have ${pantryStock2}` : '';
-      const stock = r.inv ? `${r.inv.stock} ${r.inv.unit} in pantry${stockNote}` : r.status==='invalid' ? 'Cooked/prepared item — not a raw ingredient' : 'Not in pantry';
+      const srcQtyM = r.raw.match(/[,\s]+([\d.]+)\s*(?:pack|pcs|can|jar|bottle|box|bar|slab|tub|roll|gallon|tray|bag|tube|kg|g|ml|l)?s?/i);
+      const srcQty = srcQtyM ? parseFloat(srcQtyM[1]) : null;
+      const pStock = r.inv ? (parseFloat(r.inv.stock)||0) : 0;
+      const notEnough = srcQty && r.inv && pStock < srcQty;
+      const stockNote = notEnough ? ` ⚠ need ${srcQty}, have ${pStock}` : '';
+      const stock = r.inv
+        ? `${r.inv.stock} ${r.inv.unit} in pantry${stockNote}`
+        : r.status==='invalid' ? 'Cooked/prepared item — not a raw ingredient' : 'Not in pantry';
 
-      // Qty input: show for buy (not invalid, not not-in-pantry without override)
-      const showQty = r.status === 'buy' || (r.status === 'invalid');
-      const qtyInput = showQty
-        ? `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            ${r.status==='invalid'
-              ? `<button onclick="removeResult(${ridx})" style="padding:3px 10px;background:var(--accent);color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer">✕ Remove</button>
-                 <button onclick="keepResult(${ridx})" style="padding:3px 10px;background:transparent;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer">Keep as Buy</button>`
-              : `<span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted)">QTY TO BUY:</span>
-                 <input type="text" value="${r.buyQty || r.raw}"
-                   style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:'DM Mono',monospace;width:160px;background:white"
-                   oninput="checkResults[${ridx}].buyQty=this.value"
-                   placeholder="e.g. 2 packs">`
-            }
-          </div>`
-        : '';
+      // Expanded panel — shown only for THIS item when tapped
+      let expandedPanel = '';
+      if (isExpanded) {
+        if (r.status === 'invalid') {
+          expandedPanel = `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <button onclick="removeResult(${ridx})" style="padding:4px 12px;background:var(--accent);color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer">✕ Remove</button>
+            <button onclick="keepResult(${ridx})" style="padding:4px 12px;background:transparent;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer">Keep as Buy</button>
+          </div>`;
+        } else if (r.status === 'buy') {
+          expandedPanel = `<div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted)">QTY TO BUY:</span>
+            <input type="text" value="${r.buyQty || r.raw}"
+              style="padding:4px 10px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:'DM Mono',monospace;width:180px;background:white"
+              oninput="checkResults[${ridx}].buyQty=this.value"
+              placeholder="e.g. 2 packs">
+            <button onclick="toggleExpand(-1)" style="padding:4px 8px;background:transparent;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer">Done</button>
+          </div>`;
+        }
+      }
 
       return `<div class="check-item ${cls}" id="cr-${ridx}">
         <div style="flex:1">
           <div class="ci-name">${r.raw}</div>
           <div class="ci-stock">${stock}</div>
-          ${qtyInput}
+          ${expandedPanel}
         </div>
         ${badge}
       </div>`;
     }).join('');
   });
+
   document.getElementById('checkOut').innerHTML = html;
-  // Update summary counts
+
   let ok=0,low=0,buy=0;
-  checkResults.forEach(r=>{if(r.status==='ok')ok++;else if(r.status==='low')low++;else if(r.status==='buy')buy++;});
+  checkResults.forEach(r=>{if(r.status==='ok')ok++;else if(r.status==='low')low++;else if(r.status==='buy'||r.status==='invalid')buy++;});
   document.getElementById('summary1').innerHTML = `
     <div class="tile tile-ok"><span class="tile-num">${ok}</span><span class="tile-lbl">In Stock</span></div>
     <div class="tile tile-low"><span class="tile-num">${low}</span><span class="tile-lbl">Low Stock</span></div>
     <div class="tile tile-buy"><span class="tile-num">${buy}</span><span class="tile-lbl">Need to Buy</span></div>`;
+  document.getElementById('summary1').style.display = 'grid';
 }
+
 
 function overrideStatus(idx) {
   if (!checkResults[idx]) return;
@@ -1018,6 +1029,7 @@ function overrideStatus(idx) {
     r.status = invStatus.includes('low') ? 'low' : 'ok';
     r.buyQty = null;
   }
+  expandedIdx = -1;
   renderCheckResults();
 }
 
@@ -1037,6 +1049,16 @@ function keepResult(idx) {
   if (!checkResults[idx]) return;
   checkResults[idx].status = 'buy';
   if (!checkResults[idx].buyQty) checkResults[idx].buyQty = checkResults[idx].raw;
+  expandedIdx = idx;
+  renderCheckResults();
+}
+
+function toggleExpand(idx) {
+  expandedIdx = (expandedIdx === idx) ? -1 : idx;
+  // Pre-fill buyQty when opening a buy item
+  if (expandedIdx >= 0 && checkResults[expandedIdx] && checkResults[expandedIdx].status === 'buy') {
+    if (!checkResults[expandedIdx].buyQty) checkResults[expandedIdx].buyQty = checkResults[expandedIdx].raw;
+  }
   renderCheckResults();
 }
 
