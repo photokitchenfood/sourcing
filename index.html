@@ -416,12 +416,12 @@ let INVENTORY = [
 // INVENTORY SYNC
 // ============================================================
 const INVENTORY_TABS = [
-  { name: 'Dry Goods: Cooking',  url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=0&single=true&output=csv' },
-  { name: 'Dry Goods: Pastry',   url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=2088949733&single=true&output=csv' },
-  { name: 'Frozen & Chilled',    url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=1119141207&single=true&output=csv' },
-  { name: 'CTG Items',           url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=1138629268&single=true&output=csv' },
-  { name: 'Studio Items: Food',  url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=1091284822&single=true&output=csv' },
-  { name: 'Studio Items: Maintenance', url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=851690462&single=true&output=csv' },
+  { name: 'Dry Goods: Cooking',       url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=0&single=true&output=csv' },
+  { name: 'Dry Goods: Pastry',        url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=2088949733&single=true&output=csv' },
+  { name: 'Frozen & Chilled',         url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=1119141207&single=true&output=csv' },
+  // CTG Items excluded — container sizes not relevant for sourcing cross-check
+  { name: 'Studio Items: Food',       url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=1091284822&single=true&output=csv' },
+  { name: 'Studio Items: Maintenance',url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFf7nTNbJllHeRCrKlZEpHoIq1kGOpoRYRCLM4uFoyhZkbASAZiBZW4xfxSwF87cnnokU2ty4cix2m/pub?gid=851690462&single=true&output=csv' },
 ];
 
 async function fetchWithProxy(url) {
@@ -470,28 +470,44 @@ async function loadInventory() {
 
 function normalizeUnit(u) {
   if (!u) return '';
-  const s = u.toLowerCase().trim();
-  // Normalize plurals and case variations
+  const t = u.trim();
+  const s = t.toLowerCase();
+  // Full normalization map built from actual Plate This pantry inventory
   const map = {
-    'packs': 'pack', 'Pack': 'pack', 'Packs': 'pack',
-    'pieces': 'pcs', 'piece': 'pcs', 'Pcs': 'pcs', 'PCS': 'pcs',
-    'slabs': 'slab', 'Slab': 'slab',
-    'bottles': 'bottle', 'Bottle': 'bottle',
-    'jars': 'jar', 'Jar': 'jar',
-    'cans': 'can', 'Can': 'can',
-    'boxes': 'box', 'Box': 'box',
-    'bundles': 'bundle', 'Bundle': 'bundle',
-    'trays': 'tray', 'Tray': 'tray', 'white tray': 'tray',
-    'dozen': 'dozen', 'Dozen': 'dozen',
-    'bars': 'bar', 'Bar': 'bar',
-    'tubs': 'tub', 'Tub': 'tub',
-    'rolls': 'roll', 'Roll': 'roll',
-    'sachets': 'sachet', 'Sachet': 'sachet',
-    'liters': 'L', 'litres': 'L', 'liter': 'L',
-    'kilos': 'kg', 'kilo': 'kg',
-    'grams': 'g', 'gram': 'g',
+    // Capitalization fixes
+    'Pack':'pack','Packs':'pack','Bar':'bar','Bottle':'bottle','Box':'box',
+    'Can':'can','Cans':'can','Jar':'jar','Slab':'slab','Tub':'tub',
+    // Plurals → singular
+    'packs':'pack','bars':'bar','bottles':'bottle','cans':'can',
+    'jars':'jar','rolls':'roll','gallons':'gallon','boxes':'box',
+    'slabs':'slab','tubs':'tub','tubes':'tube',
+    // Compound/ambiguous
+    'bottle, Pack':'pack','jars, Box':'jar','rolls(8m), Box':'roll',
+    'pack (24pcs)':'pack','jar/pack':'jar','pack/jar':'pack',
+    'white tray':'tray','white container':'container',
+    // Container sizes (CTG tab) — normalize to just the size label
+    'L container':'L','L rectangle':'L','L round':'L','L square':'L',
+    'M Square':'M','M rectangle':'M','M round':'M','M square':'M',
+    'S Round':'S','S rectangle':'S','S round':'S','S square':'S',
+    'XL jar':'XL','XL rectangle':'XL','XL round 1kg':'XL','XL square':'XL',
+    'XS rectangle':'XS','XS round':'XS','xs rectangle':'XS',
+    'Round':'round',
+    // mL capitalization
+    '20mL':'20ml','50mL':'50ml','300mL':'300ml','325mL':'325ml',
+    '375mL':'375ml','500mL':'500ml','530mL':'530ml',
+    // Other standard
+    'pieces':'pcs','piece':'pcs','Pcs':'pcs','PCS':'pcs',
+    'bundles':'bundle','Bundle':'bundle',
+    'dozen':'dozen','Dozen':'dozen',
+    'sachets':'sachet','Sachet':'sachet',
+    'kilos':'kg','kilo':'kg','Kg':'kg',
+    'grams':'g','gram':'g',
+    'liters':'L','litres':'L','liter':'L',
+    'fingers':'fingers',
+    'cubes':'cubes',
+    'gallon':'gallon',
   };
-  return map[u.trim()] || s;
+  return map[t] || map[s] || s;
 }
 
 function parseInvCSV(text, tabName) {
@@ -505,7 +521,7 @@ function parseInvCSV(text, tabName) {
   if (rows.length < 2) return [];
   const h = rows[0].map(x=>x.toLowerCase().trim());
   // Match your actual pantry sheet headers: Category, Item name, Brand, Description, Stock, Unit, Weight, Status, Notes
-  const ni = h.findIndex(x=>x==='item name'||x.includes('item')||x==='name'||x==='ingredient'||x==='product');
+  const ni = h.findIndex(x=>x==='item name'||x==='name'||x.includes('item name')||x==='ingredient'||x==='product');
   const ci = h.findIndex(x=>x==='category'||x.includes('cat'));
   const si = h.findIndex(x=>x==='stock'||x.includes('qty')||x.includes('quantity'));
   const ui = h.findIndex(x=>x==='unit'||x==='units');
@@ -702,7 +718,9 @@ function matchItem(name) {
   const clean = cleanForMatch(name);
   if (!clean) return null;
   const words = clean.split(' ').filter(w=>w.length>1);
-  let best=0, bestItem=null;
+
+  // Score each inventory item
+  const scored = [];
   for (const item of INVENTORY) {
     const iname = item.name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();
     let score = 0;
@@ -715,9 +733,31 @@ function matchItem(name) {
       if (matched.length === words.length && words.length >= 1) score = 75;
       else if (matched.length >= 1 && matched.length >= words.length * 0.7) score = 60;
     }
-    if (score > best) { best = score; bestItem = item; }
+    if (score >= 60) scored.push({ item, score });
   }
-  return best >= 60 ? bestItem : null;
+  if (!scored.length) return null;
+
+  // Find best score
+  const bestScore = Math.max(...scored.map(s => s.score));
+  const matches = scored.filter(s => s.score === bestScore);
+
+  // Sum stock across all top matches (handles duplicates across tabs)
+  const base = { ...matches[0].item };
+  if (matches.length > 1) {
+    const totalStock = matches.reduce((sum, s) => {
+      const st = (s.item.status||'').toLowerCase();
+      // Only sum rows that are actually in stock or low
+      if (!st.includes('re-purchase')) sum += (parseFloat(s.item.stock) || 0);
+      return sum;
+    }, 0);
+    base.stock = totalStock;
+    // Use worst status across all matching rows
+    const hasRepurchase = matches.some(s => (s.item.status||'').toLowerCase().includes('re-purchase'));
+    const hasLow = matches.some(s => (s.item.status||'').toLowerCase().includes('low'));
+    base.status = hasRepurchase ? 'Re-purchase needed' : hasLow ? 'Low in stock' : 'In stock';
+    base.unit = matches[0].item.unit; // use unit from first match
+  }
+  return base;
 }
 
 function matchItem(name) {
@@ -886,7 +926,12 @@ function renderCheckResults() {
         : r.status==='low'
         ? `<span class="badge b-low" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to change status">Low</span>`
         : `<span class="badge b-buy" style="cursor:pointer" onclick="overrideStatus(${ridx})" title="Click to change status">Buy</span>`;
-      const stock = r.inv ? `${r.inv.stock} ${r.inv.unit} in pantry` : 'Not in pantry';
+      const sourcingQtyMatch2 = r.raw.match(/[,\s]+(\d+(?:\.\d+)?)\s*(?:pack|pcs|can|jar|bottle|box|bar|slab|tub|roll|gallon|tray|bag|tube|kg|g|ml|l)?s?\b/i);
+      const sourcingQty2 = sourcingQtyMatch2 ? parseFloat(sourcingQtyMatch2[1]) : null;
+      const pantryStock2 = r.inv ? (parseFloat(r.inv.stock)||0) : 0;
+      const notEnough2 = sourcingQty2 && r.inv && pantryStock2 < sourcingQty2;
+      const stockNote = notEnough2 ? ` ⚠ need ${sourcingQty2}, have ${pantryStock2}` : '';
+      const stock = r.inv ? `${r.inv.stock} ${r.inv.unit} in pantry${stockNote}` : 'Not in pantry';
       // Show qty input only when status is buy
       const qtyInput = r.status === 'buy'
         ? `<div style="margin-top:6px;display:flex;align-items:center;gap:6px">
