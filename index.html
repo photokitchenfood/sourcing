@@ -1514,6 +1514,74 @@ function makeLabel(pName, client, shootDate, dayLabel) {
 }
 
 // ── Firebase shared lists ─────────────────────────────────────────────────────
+let _pendingSave = null;
+
+function showSaveDupePrompt(label, snapshot, dupeIdx, existingKey) {
+  _pendingSave = { label, snapshot, dupeIdx, existingKey };
+  const old = document.getElementById('dupe-prompt');
+  if (old) old.remove();
+  const prompt = document.createElement('div');
+  prompt.id = 'dupe-prompt';
+  prompt.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#053E65;color:white;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:IBM Plex Sans,sans-serif;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+  prompt.innerHTML = `
+    <span style="flex:1">A saved list named <strong>"${label}"</strong> already exists.</span>
+    <button onclick="overwriteSaved()" style="padding:6px 14px;background:#FDC24C;color:#053E65;border:none;border-radius:6px;font-weight:700;cursor:pointer">Replace</button>
+    <button onclick="saveAsNew()" style="padding:6px 14px;background:white;color:#053E65;border:none;border-radius:6px;font-weight:700;cursor:pointer">Save as New</button>
+    <button onclick="document.getElementById('dupe-prompt').remove();_pendingSave=null;" style="padding:6px 10px;background:transparent;border:1px solid rgba(255,255,255,.4);color:white;border-radius:6px;cursor:pointer">Cancel</button>`;
+  document.body.appendChild(prompt);
+}
+
+async function overwriteSaved() {
+  if (!_pendingSave) return;
+  const { label, snapshot, existingKey } = _pendingSave;
+  _pendingSave = null;
+  document.getElementById('dupe-prompt')?.remove();
+  try {
+    const key = existingKey || `pt_${Date.now()}`;
+    if (window.fbReady && window.fbDB) {
+      const safeSnapshot = sanitizeForFirebase({ key, label, ...snapshot });
+      await window.fbSet(window.fbRef(window.fbDB, `savedProjects/${key}`), safeSnapshot);
+      await loadSharedLists();
+    } else {
+      let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+      const idx = existing.findIndex(p => p.label === label);
+      if (idx >= 0) existing[idx] = { key, label, ...snapshot, savedAt: new Date().toLocaleDateString() };
+      localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
+      renderSavedChips();
+    }
+    showFieldError('✓ Replaced: ' + label);
+  } catch(e) { showFieldError('⚠ Could not save: ' + e.message); }
+}
+
+async function saveAsNew() {
+  if (!_pendingSave) return;
+  const { label, snapshot } = _pendingSave;
+  _pendingSave = null;
+  document.getElementById('dupe-prompt')?.remove();
+  try {
+    const baseLabel = label.replace(/ V\d+$/, '');
+    const key = `pt_${Date.now()}`;
+    let newLabel = label;
+    if (window.fbReady && window.fbDB) {
+      const snap = await window.fbGet(window.fbRef(window.fbDB, 'savedProjects'));
+      const existing = snap.exists() ? Object.values(snap.val()) : [];
+      const vCount = existing.filter(p => (p.label||'').replace(/ V\d+$/, '') === baseLabel).length;
+      newLabel = `${baseLabel} V${vCount + 1}`;
+      const safeSnapshot = sanitizeForFirebase({ key, label: newLabel, ...snapshot });
+      await window.fbSet(window.fbRef(window.fbDB, `savedProjects/${key}`), safeSnapshot);
+      await loadSharedLists();
+    } else {
+      let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+      const vCount = existing.filter(p => (p.label||'').replace(/ V\d+$/, '') === baseLabel).length;
+      newLabel = `${baseLabel} V${vCount + 1}`;
+      existing.push({ key, label: newLabel, ...snapshot, savedAt: new Date().toLocaleDateString() });
+      localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
+      renderSavedChips();
+    }
+    showFieldError('✓ Saved as: ' + newLabel);
+  } catch(e) { showFieldError('⚠ Could not save: ' + e.message); }
+}
+
 async function saveCurrentProject(silent) {
   const pName = document.getElementById('projectName').value || 'Untitled Project';
   const client = document.getElementById('clientName').value || '';
