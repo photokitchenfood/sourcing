@@ -150,6 +150,17 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
 @media(max-width:960px){.app{grid-template-columns:1fr;}.right{border-top:2px solid var(--border);}}
 
+/* QUARTER TABS */
+.q-tabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:10px;background:var(--panel);border-radius:8px;padding:3px;}
+.q-tab{padding:5px 10px;font-size:10px;font-family:'DM Mono',monospace;font-weight:600;border-radius:6px;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap;border:none;background:transparent;}
+.q-tab.active{background:var(--blue);color:white;}
+.q-tab:hover:not(.active){background:var(--border);color:var(--ink);}
+.saved-list-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:white;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12px;}
+.saved-list-item:hover{border-color:var(--blue);background:#F0F4F8;}
+.sli-label{flex:1;font-weight:500;}
+.sli-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+.sli-owner{font-family:'DM Mono',monospace;font-size:10px;color:var(--blue);font-weight:600;}
+
 
 
 /* SAVE/LOAD BAR */
@@ -1640,6 +1651,7 @@ async function loadSharedLists() {
     const projects = snap.exists()
       ? Object.entries(snap.val()).map(([k,v]) => ({...restoreFromFirebase(v), key:k})).sort((a,b) => b.key.localeCompare(a.key))
       : [];
+    // Set default quarter to current shoot period
     renderSavedChips(projects);
   } catch(e) {
     console.error('Load shared lists error:', e);
@@ -1734,37 +1746,72 @@ async function clearSaved() {
   } catch(e) { showFieldError('⚠ Could not clear: ' + e.message); }
 }
 
+// Quarter definitions Q3 2026 → Q4 2027
+const QUARTERS = [
+  { label:'Q3 2026', months:[7,8,9],  year:2026 },
+  { label:'Q4 2026', months:[10,11,12],year:2026 },
+  { label:'Q1 2027', months:[1,2,3],   year:2027 },
+  { label:'Q2 2027', months:[4,5,6],   year:2027 },
+  { label:'Q3 2027', months:[7,8,9],   year:2027 },
+  { label:'Q4 2027', months:[10,11,12],year:2027 },
+];
+let activeQuarter = 'Q3 2026';
+
+function getQuarterForDate(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  const m = d.getMonth() + 1;
+  const y = d.getFullYear();
+  const q = QUARTERS.find(q => q.year === y && q.months.includes(m));
+  return q ? q.label : null;
+}
+
 function renderSavedChips(projects) {
-  const wrap = document.getElementById('savedListChips');
-  if (!wrap) return;
-  // Fallback to localStorage if no projects passed
+  // Fallback to localStorage
   if (!projects) {
     try { projects = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]'); } catch(e) { projects = []; }
   }
-  if (!projects.length) {
-    wrap.innerHTML = '<span style="color:var(--muted);font-size:11px;font-family:DM Mono,monospace">No saved lists yet</span>';
+
+  // Render quarter tabs
+  const tabsEl = document.getElementById('qTabs');
+  if (tabsEl) {
+    tabsEl.innerHTML = QUARTERS.map(q => `
+      <button class="q-tab ${activeQuarter===q.label?'active':''}" onclick="switchQuarter('${q.label}',${JSON.stringify(projects).replace(/</g,'\u003c')})">${q.label}</button>
+    `).join('');
+  }
+
+  // Filter projects for active quarter
+  const filtered = projects.filter(p => {
+    const q = getQuarterForDate(p.shootDate);
+    return q === activeQuarter;
+  });
+
+  const panel = document.getElementById('savedListPanel');
+  if (!panel) return;
+
+  if (!filtered.length) {
+    panel.innerHTML = '<div style="padding:12px;font-size:11px;font-family:DM Mono,monospace;color:var(--muted);text-align:center">No saved lists for ' + activeQuarter + '</div>';
     return;
   }
-  wrap.innerHTML = projects.map(p => `
-    <div class="saved-item" data-key="${p.key}" title="Click to select · Double-click to load" style="cursor:pointer;transition:all .15s">
-      <span>${p.label}</span>
-      <span style="opacity:.4;font-size:10px;margin-left:3px">${p.savedAt||''}</span>
-      ${p.savedBy ? `<span style="opacity:.5;font-size:10px;font-family:DM Mono,monospace;margin-left:3px">[${p.savedBy}]</span>` : ''}
-      <button class="chip-load-btn" data-key="${p.key}" title="Load" style="margin-left:4px;padding:1px 7px;background:var(--green);color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer">Load</button>
-      <button class="chip-del-btn" data-key="${p.key}" data-savedby="${p.savedBy||''}" title="Delete" style="margin-left:2px">×</button>
-    </div>`).join('');
 
-  wrap.querySelectorAll('.chip-load-btn').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); loadSavedProject(btn.dataset.key); });
-  });
-  wrap.querySelectorAll('.chip-del-btn').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); deleteSaved(btn.dataset.key, btn.dataset.savedby); });
-  });
-  wrap.querySelectorAll('.saved-item').forEach(chip => {
-    const key = chip.dataset.key;
-    chip.addEventListener('click', e => { if(e.target.classList.contains('chip-load-btn')||e.target.classList.contains('chip-del-btn'))return; selectChip(key); });
-    chip.addEventListener('dblclick', e => { if(e.target.classList.contains('chip-del-btn'))return; loadSavedProject(key); });
-  });
+  panel.innerHTML = filtered.map(p => `
+    <div class="saved-list-item">
+      <div style="flex:1;min-width:0">
+        <div class="sli-label">${p.label}</div>
+        <div style="display:flex;gap:8px;margin-top:2px">
+          <span class="sli-meta">${p.savedAt||''}</span>
+          ${p.savedBy ? `<span class="sli-owner">${p.savedBy}</span>` : ''}
+        </div>
+      </div>
+      <button onclick="loadSavedProject('${p.key}')" style="padding:4px 12px;background:var(--green);color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0">Load</button>
+      <button onclick="deleteSaved('${p.key}','${p.savedBy||''}')" style="padding:4px 8px;background:transparent;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;color:var(--muted);flex-shrink:0">×</button>
+    </div>`).join('');
+}
+
+function switchQuarter(q, projects) {
+  activeQuarter = q;
+  renderSavedChips(projects || undefined);
 }
 
 function renderDayLabel() {
