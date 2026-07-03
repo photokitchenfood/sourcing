@@ -328,6 +328,37 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
 </div>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6KkFSvXiu2mH5dRe3b7lts0lyJftmcUI",
+    authDomain: "plate-this-sourcing.firebaseapp.com",
+    databaseURL: "https://plate-this-sourcing-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "plate-this-sourcing",
+    storageBucket: "plate-this-sourcing.firebasestorage.app",
+    messagingSenderId: "88452076599",
+    appId: "1:88452076599:web:78d76567cb799f1943dbb2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  window.fbDB = db;
+  window.fbRef = ref;
+  window.fbSet = set;
+  window.fbGet = get;
+  window.fbRemove = remove;
+  window.fbReady = true;
+
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if (typeof loadSharedLists === 'function') loadSharedLists();
+    }, 800);
+  });
+</script>
+
 <script>
 // ============================================================
 // BUILT-IN INVENTORY
@@ -1050,10 +1081,25 @@ function toggleExpand(idx) {
 
 function buildBuyList() {
   // Exclude invalid items unless manually kept as buy
-  buyItems=checkResults.filter(r=>r.status==='buy'||r.status==='low').map(r=>({
-    ...r,
-    raw: r.status==='buy' && r.buyQty ? r.buyQty : r.raw
-  }));
+  buyItems=checkResults.filter(r=>r.status==='buy'||r.status==='low').map(r=>{
+    // Use manually edited buyQty if set
+    if (r.buyQty && r.buyQty !== r.raw) return {...r, raw: r.buyQty};
+    // Auto-subtract pantry stock from sourcing qty for LOW items
+    if (r.status==='low' && r.inv) {
+      const srcMatch = r.raw.match(/([\d.]+)\s*(pack|pcs|can|jar|bottle|box|bar|slab|tub|roll|gallon|tray|bag|tube|kg|g|ml|l|dozen|fingers?|cubes?|bundle|pieces?|pc)s?\b/i);
+      if (srcMatch) {
+        const needed = parseFloat(srcMatch[1]);
+        const have = parseFloat(r.inv.stock) || 0;
+        const toBuy = Math.max(0, needed - have);
+        if (toBuy > 0) {
+          const unit = srcMatch[2].toLowerCase();
+          const nameOnly = r.raw.replace(/[,\s]+[\d.]+\s*\w+\s*$/, '').trim();
+          return {...r, raw: `${nameOnly}, ${toBuy} ${unit}${toBuy !== 1 && !unit.endsWith('s') ? 's' : ''}`, subtracted: true, origRaw: r.raw};
+        }
+      }
+    }
+    return {...r};
+  });
   const sponsored=[];
   combinedItems=new Set();
 
@@ -1433,125 +1479,90 @@ function makeLabel(pName, client, shootDate, dayLabel) {
   return `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''}${stylist?' · '+stylist:''} (${dayLabel})`;
 }
 
-function saveCurrentProject(silent) {
+// ── Firebase shared lists ─────────────────────────────────────────────────────
+async function saveCurrentProject(silent) {
   const pName = document.getElementById('projectName').value || 'Untitled Project';
   const client = document.getElementById('clientName').value || '';
   const shootDate = document.getElementById('shootDate').value || '';
-  const sourcingDate = document.getElementById('sourcingDate').value || '';
-  const budget = document.getElementById('projectBudget').value || '';
   const stylist = document.getElementById('foodStylist').value || '';
   syncTableDataFromDOM();
   const label = makeLabel(pName, client, shootDate, currentDayLabel);
   const snapshot = {
-    pName, client, shootDate, sourcingDate, budget, stylist,
+    pName, client, shootDate, stylist,
+    sourcingDate: document.getElementById('sourcingDate').value || '',
+    budget: document.getElementById('projectBudget').value || '',
     tableData: JSON.parse(JSON.stringify(tableData)),
     activeCols: [...activeCols],
     currentDayLabel,
-    savedAt: new Date().toLocaleDateString()
+    savedAt: new Date().toLocaleDateString(),
+    savedBy: stylist || 'Unknown',
   };
 
   try {
-    let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
-
-    // Check for duplicate label
-    const dupeIdx = existing.findIndex(p => p.label === label);
-    if (dupeIdx >= 0 && !silent) {
-      // Show inline prompt instead of browser confirm
-      showSaveDupePrompt(label, snapshot, dupeIdx);
-      return;
+    // Check Firebase first if available
+    if (window.fbReady && window.fbDB) {
+      const dbRef = window.fbRef(window.fbDB, 'savedProjects');
+      const snap = await window.fbGet(dbRef);
+      const existing = snap.exists() ? Object.entries(snap.val()).map(([k,v]) => ({...v, key:k})) : [];
+      const dupeIdx = existing.findIndex(p => p.label === label);
+      if (dupeIdx >= 0 && !silent) {
+        showSaveDupePrompt(label, snapshot, dupeIdx, existing[dupeIdx].key);
+        return;
+      }
+      const key = `pt_${Date.now()}`;
+      await window.fbSet(window.fbRef(window.fbDB, `savedProjects/${key}`), { key, label, ...snapshot });
+      await loadSharedLists();
+      if (!silent) showFieldError('✓ Saved to shared list: ' + label);
+    } else {
+      // Fallback to localStorage
+      let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+      const dupeIdx = existing.findIndex(p => p.label === label);
+      if (dupeIdx >= 0 && !silent) { showSaveDupePrompt(label, snapshot, dupeIdx); return; }
+      const key = `pt_project_${Date.now()}`;
+      existing.push({ key, label, ...snapshot });
+      localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
+      renderSavedChips();
+      if (!silent) showFieldError('✓ Saved locally: ' + label);
     }
-
-    // No duplicate — just save
-    const key = `pt_project_${Date.now()}`;
-    existing.push({ key, label, ...snapshot });
-    localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
-    renderSavedChips();
-    if (!silent) showFieldError('✓ Saved: ' + label);
   } catch(e) {
-    if (!silent) showFieldError('⚠ Could not save — browser storage may be full.');
+    console.error('Save error:', e);
+    if (!silent) showFieldError('⚠ Could not save: ' + e.message);
   }
 }
 
-// Pending save stored here to avoid passing complex objects through HTML attributes
-let _pendingSave = null;
-
-function showSaveDupePrompt(label, snapshot, dupeIdx) {
-  _pendingSave = { label, snapshot, dupeIdx };
-
-  const old = document.getElementById('dupe-prompt');
-  if (old) old.remove();
-
-  const prompt = document.createElement('div');
-  prompt.id = 'dupe-prompt';
-  prompt.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#053E65;color:white;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:IBM Plex Sans,sans-serif;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
-  prompt.innerHTML = `
-    <span style="flex:1">A saved list named <strong>"${label}"</strong> already exists.</span>
-    <button onclick="overwriteSaved()" style="padding:6px 14px;background:#FDC24C;color:#053E65;border:none;border-radius:6px;font-weight:700;cursor:pointer">Replace</button>
-    <button onclick="saveAsNew()" style="padding:6px 14px;background:white;color:#053E65;border:none;border-radius:6px;font-weight:700;cursor:pointer">Save as New</button>
-    <button onclick="document.getElementById('dupe-prompt').remove();_pendingSave=null;" style="padding:6px 10px;background:transparent;border:1px solid rgba(255,255,255,.4);color:white;border-radius:6px;cursor:pointer">Cancel</button>`;
-  document.body.appendChild(prompt);
-}
-
-function overwriteSaved() {
-  if (!_pendingSave) return;
-  const { label, snapshot, dupeIdx } = _pendingSave;
-  _pendingSave = null;
-  document.getElementById('dupe-prompt')?.remove();
+async function loadSharedLists() {
+  if (!window.fbReady || !window.fbDB) { renderSavedChips(); return; }
   try {
-    let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
-    existing[dupeIdx] = { ...existing[dupeIdx], ...snapshot, savedAt: new Date().toLocaleDateString() };
-    localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
+    const snap = await window.fbGet(window.fbRef(window.fbDB, 'savedProjects'));
+    const projects = snap.exists()
+      ? Object.entries(snap.val()).map(([k,v]) => ({...v, key:k})).sort((a,b) => b.key.localeCompare(a.key))
+      : [];
+    renderSavedChips(projects);
+  } catch(e) {
+    console.error('Load shared lists error:', e);
     renderSavedChips();
-    showFieldError('✓ Replaced: ' + label);
-  } catch(e) { showFieldError('⚠ Could not save.'); }
+  }
 }
 
-function saveAsNew() {
-  if (!_pendingSave) return;
-  const { label, snapshot } = _pendingSave;
-  _pendingSave = null;
-  document.getElementById('dupe-prompt')?.remove();
+async function loadSavedProject(key) {
   try {
-    let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
-    const baseLabel = label.replace(/ V\d+$/, '');
-    const vCount = existing.filter(p => p.label.replace(/ V\d+$/, '') === baseLabel).length;
-    const newLabel = `${baseLabel} V${vCount + 1}`;
-    const key = `pt_project_${Date.now()}`;
-    existing.push({ key, label: newLabel, ...snapshot, savedAt: new Date().toLocaleDateString() });
-    localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
-    renderSavedChips();
-    showFieldError('✓ Saved as: ' + newLabel);
-  } catch(e) { showFieldError('⚠ Could not save.'); }
-}
+    let proj = null;
+    if (window.fbReady && window.fbDB) {
+      const snap = await window.fbGet(window.fbRef(window.fbDB, `savedProjects/${key}`));
+      if (snap.exists()) proj = snap.val();
+    } else {
+      const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+      proj = existing.find(p => p.key === key);
+    }
+    if (!proj) { showFieldError('⚠ Could not find saved project.'); return; }
 
-function loadSavedProject(key) {
-  console.log('[PT] loadSavedProject called with key:', key);
-  try {
-    const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
-    console.log('[PT] saved projects count:', existing.length);
-    const proj = existing.find(p => p.key === key);
-    console.log('[PT] found proj:', proj ? proj.label : 'NOT FOUND');
-    if (!proj) { showFieldError('⚠ Could not find saved project. Try again.'); return; }
-
-    // Check if current table has unsaved data
     syncTableDataFromDOM();
     const hasData = tableData.some(r => Object.values(r.cells||{}).some(v => v && v.trim()));
-    const isDifferentDay = proj.currentDayLabel !== currentDayLabel;
-
-    if (hasData || isDifferentDay) {
-      const currentLabel = makeLabel(
-        document.getElementById('projectName').value,
-        document.getElementById('clientName').value,
-        document.getElementById('shootDate').value,
-        currentDayLabel
-      );
-      const msg = isDifferentDay
-        ? `You are currently editing "${currentDayLabel}". Loading "${proj.label}" will replace the current table.\n\nSave current work first?`
-        : `Loading "${proj.label}" will replace unsaved changes in the current table.\n\nContinue?`;
-      if (!confirm(msg)) return;
+    if (hasData) {
+      const ok = confirm(`Load "${proj.label}"? Unsaved changes will be lost.`);
+      if (!ok) return;
     }
 
-    // Load project
     document.getElementById('projectName').value = proj.pName || '';
     document.getElementById('clientName').value = proj.client || '';
     document.getElementById('shootDate').value = proj.shootDate || '';
@@ -1562,128 +1573,97 @@ function loadSavedProject(key) {
     activeCols = proj.activeCols ? [...proj.activeCols] : [...ALL_COLS];
     currentDayLabel = proj.currentDayLabel || 'Sourcing Day 1';
 
-    // Clear DOM and re-render
-    const tblBody = document.getElementById('tblBody');
-    const tblHead = document.getElementById('tblHead');
-    if (tblBody) tblBody.innerHTML = '';
-    if (tblHead) tblHead.innerHTML = '';
+    document.getElementById('tblBody').innerHTML = '';
+    document.getElementById('tblHead').innerHTML = '';
     renderDayLabel();
     renderColManager();
     renderTable();
-    // Reset right-panel state only — do NOT call resetState()/hardReset() as they wipe tableData
-    checkResults = [];
-    buyItems = [];
-    combinedItems = new Set();
-    stepsCompleted = { step1: false, step2: false, step3: false };
-    document.getElementById('checkOut').innerHTML = '<div class="empty"><div class="big">🥕</div><p>Table loaded — hit <strong>Check Against Pantry</strong> to run the check.</p></div>';
-    const sum1 = document.getElementById('summary1');
-    if (sum1) { sum1.style.display = 'none'; sum1.innerHTML = '<div class="tile tile-ok"><span class="tile-num">0</span><span class="tile-lbl">In Stock</span></div><div class="tile tile-low"><span class="tile-num">0</span><span class="tile-lbl">Low Stock</span></div><div class="tile tile-buy"><span class="tile-num">0</span><span class="tile-lbl">Need to Buy</span></div>'; }
-    const buyWrap = document.getElementById('toBuyListWrap'); if (buyWrap) buyWrap.style.display = 'none';
-    const buyOut = document.getElementById('buyListOut'); if (buyOut) buyOut.innerHTML = '<div class="empty"><div class="big">🛒</div><p>Complete Step 1 first.</p></div>';
-    const combSug = document.getElementById('combineSuggestions'); if (combSug) combSug.innerHTML = '';
-    const expAct = document.getElementById('exportActions'); if (expAct) expAct.style.display = 'none';
-    const sub = document.getElementById('rightSub'); if (sub) sub.textContent = 'Table loaded — hit Check Against Pantry to run the check';
+
+    // Reset right panel without wiping tableData
+    checkResults=[]; buyItems=[]; combinedItems=new Set();
+    stepsCompleted={step1:false,step2:false,step3:false};
+    document.getElementById('checkOut').innerHTML='<div class="empty"><div class="big">🥕</div><p>Table loaded — hit <strong>Check Against Pantry</strong> to run the check.</p></div>';
+    const sum1=document.getElementById('summary1'); if(sum1){sum1.style.display='none';}
+    const bw=document.getElementById('toBuyListWrap'); if(bw)bw.style.display='none';
+    const bo=document.getElementById('buyListOut'); if(bo)bo.innerHTML='<div class="empty"><div class="big">🛒</div><p>Complete Step 1 first.</p></div>';
+    const cs=document.getElementById('combineSuggestions'); if(cs)cs.innerHTML='';
+    const ea=document.getElementById('exportActions'); if(ea)ea.style.display='none';
+    const rs=document.getElementById('rightSub'); if(rs)rs.textContent='Table loaded — hit Check Against Pantry to run the check';
     updateAddDayButton();
-    switchStep(1, document.getElementById('stab-1'));
-
-    // Clear chip highlights
-    document.querySelectorAll('.saved-item').forEach(c => {
-      c.style.background = ''; c.style.borderColor = ''; c.style.color = '';
-    });
-    
-
-    document.querySelector('.left').scrollTop = 0;
-    window.scrollTo(0,0);
+    switchStep(1,document.getElementById('stab-1'));
+    document.querySelector('.left').scrollTop=0; window.scrollTo(0,0);
+    document.querySelectorAll('.saved-item').forEach(c=>{c.style.background='';c.style.borderColor='';c.style.color='';});
     showFieldError('✓ Loaded: ' + proj.label);
-  } catch(e) {
-    console.error('Load error:', e);
-    showFieldError('⚠ Could not load: ' + e.message);
+  } catch(e) { showFieldError('⚠ Could not load: ' + e.message); }
+}
+
+async function deleteSaved(key, savedBy) {
+  const currentStylist = document.getElementById('foodStylist').value;
+  if (savedBy && savedBy !== 'Unknown' && savedBy !== currentStylist) {
+    showFieldError(`⚠ Only ${savedBy} can delete this list. You are logged in as ${currentStylist || 'no stylist selected'}.`);
+    return;
   }
-}
-
-function deleteSaved(key) {
+  if (!confirm('Delete this saved list? This cannot be undone.')) return;
   try {
-    let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
-    existing = existing.filter(p => p.key !== key);
-    localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
-    renderSavedChips();
-  } catch(e) {}
+    if (window.fbReady && window.fbDB) {
+      await window.fbRemove(window.fbRef(window.fbDB, `savedProjects/${key}`));
+      await loadSharedLists();
+      showFieldError('✓ Deleted.');
+    } else {
+      let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
+      existing = existing.filter(p => p.key !== key);
+      localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
+      renderSavedChips();
+    }
+  } catch(e) { showFieldError('⚠ Could not delete: ' + e.message); }
 }
 
-function clearSaved() {
-  if (!confirm('Clear all saved projects? This cannot be undone.')) return;
-  localStorage.removeItem('pt_saved_projects');
-  renderSavedChips();
+async function clearSaved() {
+  if (!confirm('Clear ALL saved lists? This cannot be undone.')) return;
+  try {
+    if (window.fbReady && window.fbDB) {
+      await window.fbRemove(window.fbRef(window.fbDB, 'savedProjects'));
+      await loadSharedLists();
+    } else {
+      localStorage.removeItem('pt_saved_projects');
+      renderSavedChips();
+    }
+  } catch(e) { showFieldError('⚠ Could not clear: ' + e.message); }
 }
 
-function renderSavedChips() {
+function renderSavedChips(projects) {
   const wrap = document.getElementById('savedListChips');
   if (!wrap) return;
-  try {
-    const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
-    if (!existing.length) {
-      wrap.innerHTML = '<span style="color:var(--muted);font-size:11px;font-family:DM Mono,monospace">No saved lists yet</span>';
-      return;
-    }
-    wrap.innerHTML = existing.map(p => `
-      <div class="saved-item" data-key="${p.key}" title="Click to select · Double-click to load" style="cursor:pointer;transition:all .15s">
-        <span>${p.label}</span>
-        <span style="opacity:.4;font-size:10px;margin-left:2px">${p.savedAt}</span>
-        <button class="chip-load-btn" data-key="${p.key}" title="Load this project" style="margin-left:4px;padding:1px 7px;background:var(--green);color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer">Load</button>
-        <button class="chip-del-btn" data-key="${p.key}" title="Delete" style="margin-left:2px">×</button>
-      </div>`).join('');
-
-    // Wire events via JS — avoids quote-escaping issues with inline handlers
-    wrap.querySelectorAll('.saved-item').forEach(chip => {
-      const key = chip.dataset.key;
-      chip.addEventListener('click', (e) => {
-        if (e.target.classList.contains('chip-del-btn')) return;
-        selectChip(key);
-      });
-      chip.addEventListener('dblclick', (e) => {
-        e.preventDefault();
-        console.log('[PT] dblclick fired, key:', key);
-        if (e.target.classList.contains('chip-del-btn')) return;
-        loadSavedProject(key);
-      });
-    });
-    wrap.querySelectorAll('.chip-load-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        loadSavedProject(btn.dataset.key);
-      });
-    });
-    wrap.querySelectorAll('.chip-del-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteSaved(btn.dataset.key);
-      });
-    });
-  } catch(e) { wrap.innerHTML = ''; }
-}
-
-function selectChip(key) {
-  document.querySelectorAll('.saved-item').forEach(c => {
-    c.style.background = ''; c.style.borderColor = ''; c.style.color = '';
-  });
-  const chip = document.querySelector(`.saved-item[data-key="${key}"]`);
-  if (chip) {
-    chip.style.background = '#053E65';
-    chip.style.borderColor = '#053E65';
-    chip.style.color = 'white';
+  // Fallback to localStorage if no projects passed
+  if (!projects) {
+    try { projects = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]'); } catch(e) { projects = []; }
   }
-  const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
-  const proj = existing.find(p => p.key === key);
-  if (proj) showFieldError('Selected: ' + proj.label + ' — double-click to load');
+  if (!projects.length) {
+    wrap.innerHTML = '<span style="color:var(--muted);font-size:11px;font-family:DM Mono,monospace">No saved lists yet</span>';
+    return;
+  }
+  wrap.innerHTML = projects.map(p => `
+    <div class="saved-item" data-key="${p.key}" title="Click to select · Double-click to load" style="cursor:pointer;transition:all .15s">
+      <span>${p.label}</span>
+      <span style="opacity:.4;font-size:10px;margin-left:3px">${p.savedAt||''}</span>
+      ${p.savedBy ? `<span style="opacity:.5;font-size:10px;font-family:DM Mono,monospace;margin-left:3px">[${p.savedBy}]</span>` : ''}
+      <button class="chip-load-btn" data-key="${p.key}" title="Load" style="margin-left:4px;padding:1px 7px;background:var(--green);color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer">Load</button>
+      <button class="chip-del-btn" data-key="${p.key}" data-savedby="${p.savedBy||''}" title="Delete" style="margin-left:2px">×</button>
+    </div>`).join('');
+
+  wrap.querySelectorAll('.chip-load-btn').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); loadSavedProject(btn.dataset.key); });
+  });
+  wrap.querySelectorAll('.chip-del-btn').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); deleteSaved(btn.dataset.key, btn.dataset.savedby); });
+  });
+  wrap.querySelectorAll('.saved-item').forEach(chip => {
+    const key = chip.dataset.key;
+    chip.addEventListener('click', e => { if(e.target.classList.contains('chip-load-btn')||e.target.classList.contains('chip-del-btn'))return; selectChip(key); });
+    chip.addEventListener('dblclick', e => { if(e.target.classList.contains('chip-del-btn'))return; loadSavedProject(key); });
+  });
 }
 
-// ============================================================
-// PDF with yellow category headers
-// ============================================================
-
-// ============================================================
-// INIT
-// ============================================================
 function renderDayLabel() {
   const el = document.getElementById('dayLabel');
   if (el) el.textContent = currentDayLabel.toUpperCase();
