@@ -1474,6 +1474,40 @@ function syncTableDataFromDOM() {
 
 // LOCALSTORAGE SAVE / LOAD
 // ============================================================
+// Firebase key sanitization — Firebase rejects keys with . # $ / [ ]
+function sanitizeForFirebase(obj) {
+  if (Array.isArray(obj)) return obj.map(sanitizeForFirebase);
+  if (obj && typeof obj === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const safeKey = k.replace(/[.#$\[\]\/]/g, '_').replace(/\s+/g, '_');
+      out[safeKey] = sanitizeForFirebase(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
+function restoreFromFirebase(obj) {
+  // Reverse: restore column names from sanitized keys
+  if (Array.isArray(obj)) return obj.map(restoreFromFirebase);
+  if (obj && typeof obj === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      // Restore known column name patterns
+      const restored = k
+        .replace(/VEGGIES___FRUITS/g, 'VEGGIES / FRUITS')
+        .replace(/DAIRY___FROZEN/g, 'DAIRY / FROZEN')
+        .replace(/FRESH_MEAT/g, 'FRESH MEAT')
+        .replace(/DRY_GOODS/g, 'DRY GOODS')
+        .replace(/_/g, ' ');
+      out[restored] = restoreFromFirebase(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
 function makeLabel(pName, client, shootDate, dayLabel) {
   const stylist = document.getElementById('foodStylist')?.value || '';
   return `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''}${stylist?' · '+stylist:''} (${dayLabel})`;
@@ -1510,7 +1544,8 @@ async function saveCurrentProject(silent) {
         return;
       }
       const key = `pt_${Date.now()}`;
-      await window.fbSet(window.fbRef(window.fbDB, `savedProjects/${key}`), { key, label, ...snapshot });
+      const safeSnapshot = sanitizeForFirebase({ key, label, ...snapshot });
+      await window.fbSet(window.fbRef(window.fbDB, `savedProjects/${key}`), safeSnapshot);
       await loadSharedLists();
       if (!silent) showFieldError('✓ Saved to shared list: ' + label);
     } else {
@@ -1535,7 +1570,7 @@ async function loadSharedLists() {
   try {
     const snap = await window.fbGet(window.fbRef(window.fbDB, 'savedProjects'));
     const projects = snap.exists()
-      ? Object.entries(snap.val()).map(([k,v]) => ({...v, key:k})).sort((a,b) => b.key.localeCompare(a.key))
+      ? Object.entries(snap.val()).map(([k,v]) => ({...restoreFromFirebase(v), key:k})).sort((a,b) => b.key.localeCompare(a.key))
       : [];
     renderSavedChips(projects);
   } catch(e) {
@@ -1549,7 +1584,7 @@ async function loadSavedProject(key) {
     let proj = null;
     if (window.fbReady && window.fbDB) {
       const snap = await window.fbGet(window.fbRef(window.fbDB, `savedProjects/${key}`));
-      if (snap.exists()) proj = snap.val();
+      if (snap.exists()) proj = restoreFromFirebase(snap.val());
     } else {
       const existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
       proj = existing.find(p => p.key === key);
