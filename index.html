@@ -1651,17 +1651,17 @@ async function saveCurrentProject(silent) {
 }
 
 async function loadSharedLists() {
-  if (!window.fbReady || !window.fbDB) { renderSavedChips(); return; }
+  if (!window.fbReady || !window.fbDB) { renderSavedChips([]); return; }
   try {
     const snap = await window.fbGet(window.fbRef(window.fbDB, 'savedProjects'));
     const projects = snap.exists()
       ? Object.entries(snap.val()).map(([k,v]) => ({...restoreFromFirebase(v), key:k})).sort((a,b) => b.key.localeCompare(a.key))
       : [];
-    // Set default quarter to current shoot period
+    window._allSavedProjects = projects;
     renderSavedChips(projects);
   } catch(e) {
     console.error('Load shared lists error:', e);
-    renderSavedChips();
+    renderSavedChips([]);
   }
 }
 
@@ -1768,10 +1768,12 @@ let activeYear = getCurrentYear();
 let activeQuarter = getCurrentQuarter();
 
 function getAvailableYears(projects) {
-  const years = new Set([getCurrentYear()]);
+  const currentY = getCurrentYear();
+  // Always include current year and adjacent years for navigation
+  const years = new Set([currentY - 1, currentY, currentY + 1].filter(y => y >= 2026));
   (projects || []).forEach(p => {
     if (p.shootDate) {
-      const y = parseInt(p.shootDate.split('-')[0]);
+      const y = parseInt((p.shootDate+'').split('-')[0]);
       if (!isNaN(y) && y >= 2026) years.add(y);
     }
   });
@@ -1894,7 +1896,9 @@ window.addEventListener('load',()=>{
   renderTable();
   renderDayLabel();
   updateAddDayButton();
-  renderSavedChips();
+  // Render tabs immediately with current year (no data yet)
+  renderSavedChips([]);
+  // Firebase will call loadSharedLists() after ~800ms which rerenders with real data
 });
 </script>
 </body>
