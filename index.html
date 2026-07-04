@@ -1442,8 +1442,9 @@ function finishAndSave() {
 }
 
 async function doneForNow() {
-  await saveCurrentProject(true); // silent save
-  showFieldError('✓ Project saved. Page kept as-is.');
+  // Use silent=false so duplicate detection prompt shows if list already exists
+  await saveCurrentProject(false);
+  // Don't show extra banner — saveCurrentProject handles its own feedback
 }
 
 function finishAndAddDay() {
