@@ -1441,9 +1441,9 @@ function finishAndSave() {
   }, 300);
 }
 
-function doneForNow() {
-  saveCurrentProject(false);
-  showFieldError('✓ Project saved. See you next time!');
+async function doneForNow() {
+  await saveCurrentProject(true); // silent save
+  showFieldError('✓ Project saved. Page kept as-is.');
 }
 
 function finishAndAddDay() {
@@ -1526,8 +1526,7 @@ function restoreFromFirebase(obj) {
 }
 
 function makeLabel(pName, client, shootDate, dayLabel) {
-  const stylist = document.getElementById('foodStylist')?.value || '';
-  return `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''}${stylist?' · '+stylist:''} (${dayLabel})`;
+  return `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''} (${dayLabel})`;
 }
 
 // ── Firebase shared lists ─────────────────────────────────────────────────────
@@ -1765,10 +1764,12 @@ let activeQuarter = 'Q3 2026';
 
 function getQuarterForDate(dateStr) {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (isNaN(d)) return null;
-  const m = d.getMonth() + 1;
-  const y = d.getFullYear();
+  // Date input returns YYYY-MM-DD — parse directly to avoid timezone shifting
+  const parts = dateStr.split('-');
+  if (parts.length < 2) return null;
+  const y = parseInt(parts[0]);
+  const m = parseInt(parts[1]);
+  if (isNaN(y) || isNaN(m)) return null;
   const q = QUARTERS.find(q => q.year === y && q.months.includes(m));
   return q ? q.label : null;
 }
