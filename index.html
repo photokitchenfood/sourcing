@@ -1787,8 +1787,12 @@ function renderSavedChips(projects) {
   const tabsEl = document.getElementById('qTabs');
   if (tabsEl) {
     tabsEl.innerHTML = QUARTERS.map(q => `
-      <button class="q-tab ${activeQuarter===q.label?'active':''}" onclick="switchQuarter('${q.label}')">${q.label}</button>
+      <button class="q-tab ${activeQuarter===q.label?'active':''}" data-quarter="${q.label}">${q.label}</button>
     `).join('');
+    // Wire via addEventListener — avoids scope issues with inline onclick
+    tabsEl.querySelectorAll('.q-tab').forEach(btn => {
+      btn.addEventListener('click', () => switchQuarter(btn.dataset.quarter));
+    });
   }
 
   // Filter projects for active quarter
