@@ -1780,16 +1780,20 @@ function renderSavedChips(projects) {
     try { projects = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]'); } catch(e) { projects = []; }
   }
 
-  // Render quarter tabs
+  // Store projects for tab switching
+  window._allSavedProjects = projects || [];
+
+  // Render quarter tabs — no data in onclick, just the label
   const tabsEl = document.getElementById('qTabs');
   if (tabsEl) {
     tabsEl.innerHTML = QUARTERS.map(q => `
-      <button class="q-tab ${activeQuarter===q.label?'active':''}" onclick="switchQuarter('${q.label}',${JSON.stringify(projects).replace(/</g,'\u003c')})">${q.label}</button>
+      <button class="q-tab ${activeQuarter===q.label?'active':''}" onclick="switchQuarter('${q.label}')">${q.label}</button>
     `).join('');
   }
 
   // Filter projects for active quarter
-  const filtered = projects.filter(p => {
+  const allProjects = projects || window._allSavedProjects || [];
+  const filtered = allProjects.filter(p => {
     const q = getQuarterForDate(p.shootDate);
     return q === activeQuarter;
   });
@@ -1816,9 +1820,9 @@ function renderSavedChips(projects) {
     </div>`).join('');
 }
 
-function switchQuarter(q, projects) {
+function switchQuarter(q) {
   activeQuarter = q;
-  renderSavedChips(projects || undefined);
+  renderSavedChips(window._allSavedProjects || undefined);
 }
 
 function renderDayLabel() {
