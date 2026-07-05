@@ -218,18 +218,26 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
 
 
 
-<!-- SAVED LISTS PANEL -->
-<div style="background:var(--warm);border-bottom:1px solid var(--border);padding:10px 28px 0">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-    <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Saved Lists</span>
-    <div style="display:flex;gap:6px">
-      <button class="btn btn-ghost btn-sm" onclick="saveCurrentProject()">💾 Save Current</button>
-      <button class="btn btn-ghost btn-sm" onclick="clearSaved()" style="color:var(--accent)">Clear All</button>
+<!-- SAVED LISTS DRAWER -->
+<div id="savedDrawer" style="background:var(--warm);border-bottom:1px solid var(--border);">
+  <!-- Drawer header — always visible -->
+  <div style="display:flex;align-items:center;padding:8px 28px;cursor:pointer;user-select:none" onclick="toggleSavedDrawer()">
+    <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px;flex:1">
+      📋 Saved Lists
+      <span id="drawerChevron" style="font-size:10px;color:var(--muted);transition:transform .2s;display:inline-block">▼</span>
+      <span id="savedCountBadge" style="background:var(--blue);color:white;font-size:9px;padding:1px 6px;border-radius:10px;display:none">0</span>
+    </span>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();saveCurrentProject()">💾 Save Current</button>
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();clearSaved()" style="color:var(--accent)">Clear All</button>
     </div>
   </div>
-  <div class="q-tabs" id="qTabs"></div>
-  <div style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);padding:2px 0 6px;opacity:.7">Showing <span id="activeQLabel">Q3 2026</span> — click a quarter or year to switch</div>
-  <div id="savedListPanel" style="max-height:160px;overflow-y:auto;padding-bottom:10px"></div>
+  <!-- Drawer body — collapsible -->
+  <div id="savedDrawerBody" style="display:none;padding:0 28px 12px">
+    <div class="q-tabs" id="qTabs"></div>
+    <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);padding:2px 0 6px;opacity:.7">Showing <span id="activeQLabel">Q3 2026</span> — click a quarter or year to switch</div>
+    <div id="savedListPanel"></div>
+  </div>
 </div>
 
 <div class="inv-bar">
@@ -1539,6 +1547,24 @@ function restoreFromFirebase(obj) {
   return obj;
 }
 
+let drawerOpen = false;
+
+function toggleSavedDrawer() {
+  drawerOpen = !drawerOpen;
+  const body = document.getElementById('savedDrawerBody');
+  const chevron = document.getElementById('drawerChevron');
+  if (body) body.style.display = drawerOpen ? 'block' : 'none';
+  if (chevron) chevron.style.transform = drawerOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+  // Load lists when first opened
+  if (drawerOpen && window._allSavedProjects) {
+    renderSavedChips(window._allSavedProjects);
+  }
+}
+
+function openSavedDrawer() {
+  if (!drawerOpen) toggleSavedDrawer();
+}
+
 function makeLabel(pName, client, shootDate, dayLabel) {
   return `${pName}${client?' · '+client:''}${shootDate?' · '+shootDate:''} (${dayLabel})`;
 }
@@ -1645,7 +1671,7 @@ async function saveCurrentProject(silent) {
       const safeSnapshot = sanitizeForFirebase({ key, label, ...snapshot });
       await window.fbSet(window.fbRef(window.fbDB, `savedProjects/${key}`), safeSnapshot);
       await loadSharedLists();
-      if (!silent) showFieldError('✓ Saved to shared list: ' + label);
+      if (!silent) { showFieldError('✓ Saved to shared list: ' + label); openSavedDrawer(); }
     } else {
       // Fallback to localStorage
       let existing = JSON.parse(localStorage.getItem('pt_saved_projects') || '[]');
@@ -1655,7 +1681,7 @@ async function saveCurrentProject(silent) {
       existing.push({ key, label, ...snapshot });
       localStorage.setItem('pt_saved_projects', JSON.stringify(existing));
       renderSavedChips();
-      if (!silent) showFieldError('✓ Saved locally: ' + label);
+      if (!silent) { showFieldError('✓ Saved locally: ' + label); openSavedDrawer(); }
     }
   } catch(e) {
     console.error('Save error:', e);
@@ -1854,24 +1880,37 @@ function renderSavedChips(projects) {
   if (!filtered.length) {
     const qlabel = document.getElementById('activeQLabel');
     if (qlabel) qlabel.textContent = `${activeQuarter} ${activeYear}`;
-    panel.innerHTML = `<div style="padding:12px;font-size:11px;font-family:DM Mono,monospace;color:var(--muted);text-align:center">No saved lists for ${activeQuarter} ${activeYear}</div>`;
+    const badge2 = document.getElementById('savedCountBadge');
+    const total2 = (window._allSavedProjects||[]).length;
+    if (badge2) { badge2.textContent = total2; badge2.style.display = total2 > 0 ? 'inline' : 'none'; }
+    panel.innerHTML = `<div style="padding:12px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-align:center">No saved lists for ${activeQuarter} ${activeYear}</div>`;
     return;
   }
 
   const qlabelEl = document.getElementById('activeQLabel');
   if (qlabelEl) qlabelEl.textContent = `${activeQuarter} ${activeYear}`;
-  panel.innerHTML = filtered.map(p => `
-    <div class="saved-list-item">
-      <div style="flex:1;min-width:0">
-        <div class="sli-label">${p.label}</div>
-        <div style="display:flex;gap:8px;margin-top:2px">
+  // Update count badge
+  const badge = document.getElementById('savedCountBadge');
+  const total = (window._allSavedProjects||[]).length;
+  if (badge) {
+    badge.textContent = total;
+    badge.style.display = total > 0 ? 'inline' : 'none';
+  }
+  panel.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:4px">` +
+    filtered.map(p => `
+    <div class="saved-list-item" style="flex-direction:column;align-items:flex-start;gap:6px;padding:10px 12px">
+      <div style="flex:1;min-width:0;width:100%">
+        <div class="sli-label" style="font-size:11px;line-height:1.4">${p.label}</div>
+        <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap">
           <span class="sli-meta">${p.savedAt||''}</span>
           ${p.savedBy ? `<span class="sli-owner">${p.savedBy}</span>` : ''}
         </div>
       </div>
-      <button data-loadkey="${p.key}" style="padding:4px 12px;background:var(--green);color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0">Load</button>
-      <button data-delkey="${p.key}" data-savedby="${p.savedBy||''}" style="padding:4px 8px;background:transparent;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;color:var(--muted);flex-shrink:0">×</button>
-    </div>`).join('');
+      <div style="display:flex;gap:4px;width:100%;justify-content:flex-end">
+        <button data-loadkey="${p.key}" style="padding:3px 10px;background:var(--green);color:white;border:none;border-radius:5px;font-size:10px;cursor:pointer">Load</button>
+        <button data-delkey="${p.key}" data-savedby="${p.savedBy||''}" style="padding:3px 7px;background:transparent;border:1px solid var(--border);border-radius:5px;font-size:10px;cursor:pointer;color:var(--muted)">×</button>
+      </div>
+    </div>`).join('') + `</div>`;
 
   panel.querySelectorAll('[data-loadkey]').forEach(btn => {
     btn.addEventListener('click', () => loadSavedProject(btn.dataset.loadkey));
