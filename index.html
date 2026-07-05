@@ -228,6 +228,7 @@ table.stbl{width:100%;border-collapse:collapse;min-width:500px;}
     </div>
   </div>
   <div class="q-tabs" id="qTabs"></div>
+  <div style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);padding:2px 0 6px;opacity:.7">Showing <span id="activeQLabel">Q3 2026</span> — click a quarter or year to switch</div>
   <div id="savedListPanel" style="max-height:160px;overflow-y:auto;padding-bottom:10px"></div>
 </div>
 
@@ -850,6 +851,9 @@ function showFieldError(msg) {
 }
 
 function runCheck() {
+  // Show loading state on button
+  const checkBtn = document.querySelector('button[onclick="runCheck()"]');
+  if (checkBtn) { checkBtn.textContent = '⏳ Checking...'; checkBtn.disabled = true; }
   // Always sync DOM first — captures any edits typed directly into cells
   syncTableDataFromDOM();
   // Validate required fields
@@ -883,7 +887,7 @@ function runCheck() {
     const pantryStock = inv ? (parseFloat(inv.stock)||0) : 0;
     const notEnough = sourcingQty && inv && pantryStock < sourcingQty;
     // Invalid: not in pantry AND has a cooking/prep word
-    const PREP_WORDS = /\b(boiled?|hard-boiled|soft-boiled|hardboiled|fried|grilled|roasted|sautéed|sauteed|steamed|baked|cooked|chopped|sliced|diced|minced|beaten|whipped|blanched|poached|braised|seared|caramelized|caramelised|marinated|shredded|mashed|puréed|pureed|rendered|toasted)\b/i;
+    const PREP_WORDS = /\b(boiled?|hard-boiled|soft-boiled|hardboiled|fried|grilled|roasted|sautéed|sauteed|steamed|baked|cooked|chopped|diced|minced|beaten|whipped|blanched|poached|braised|seared|caramelized|caramelised|shredded|mashed|puréed|pureed|rendered|toasted)\b/i;
     const isInvalid = !inv && PREP_WORDS.test(it.raw);
     const status = isInvalid ? 'invalid'
       : !inv ? 'buy'
@@ -904,6 +908,10 @@ function runCheck() {
 
   // Render results (also handles override badges and qty inputs)
   renderCheckResults();
+
+  // Restore button
+  const checkBtnDone = document.querySelector('button[onclick="runCheck()"]');
+  if (checkBtnDone) { checkBtnDone.textContent = '✦ Check Against Pantry →'; checkBtnDone.disabled = false; }
 
   // Update summary tiles
   const sum = document.getElementById('summary1');
@@ -1278,8 +1286,13 @@ function exportPDF() {
   });
 
   // Filename
+  // Format date as readable: 2026-07-10 → Jul-10-2026
+  const dateObj = shootDate ? new Date(shootDate + 'T00:00:00') : null;
+  const readableDate = dateObj && !isNaN(dateObj)
+    ? dateObj.toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'}).replace(/,\s*/g,'-').replace(/\s+/g,'-')
+    : shootDate;
   const safeName = pName.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
-  const safeDate = shootDate.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+  const safeDate = readableDate.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
   const safeDay  = currentDayLabel.replace(/\s+/g,'');
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -1455,8 +1468,8 @@ function finishAndAddDay() {
     showFieldError('⚠ Fill in Project Name, Client, and Shoot Date first.');
     return;
   }
-  if (!stepsCompleted.step1 || !stepsCompleted.step2 || !stepsCompleted.step3) {
-    showFieldError('⚠ Complete all 3 steps (Pantry Check, Buy List, Export) before adding a new sourcing day.');
+  if (!stepsCompleted.step1 || !stepsCompleted.step2) {
+    showFieldError('⚠ Complete the Pantry Check and Buy List steps before adding a new sourcing day.');
     return;
   }
   // Capture day number before reset
@@ -1839,10 +1852,14 @@ function renderSavedChips(projects) {
   if (!panel) return;
 
   if (!filtered.length) {
+    const qlabel = document.getElementById('activeQLabel');
+    if (qlabel) qlabel.textContent = `${activeQuarter} ${activeYear}`;
     panel.innerHTML = `<div style="padding:12px;font-size:11px;font-family:DM Mono,monospace;color:var(--muted);text-align:center">No saved lists for ${activeQuarter} ${activeYear}</div>`;
     return;
   }
 
+  const qlabelEl = document.getElementById('activeQLabel');
+  if (qlabelEl) qlabelEl.textContent = `${activeQuarter} ${activeYear}`;
   panel.innerHTML = filtered.map(p => `
     <div class="saved-list-item">
       <div style="flex:1;min-width:0">
@@ -1877,14 +1894,14 @@ function renderDayLabel() {
 function updateAddDayButton() {
   const btn = document.getElementById('addDayBtn');
   if (!btn) return;
-  const allDone = stepsCompleted.step1 && stepsCompleted.step2 && stepsCompleted.step3;
+  const allDone = stepsCompleted.step1 && stepsCompleted.step2; // Export step not required
   btn.disabled = !allDone;
   btn.style.opacity = allDone ? '1' : '0.4';
   btn.style.cursor = allDone ? 'pointer' : 'not-allowed';
   btn.title = allDone ? 'Add another sourcing day' :
     !stepsCompleted.step1 ? 'Complete Step 1 (Pantry Check) first' :
-    !stepsCompleted.step2 ? 'Complete Step 2 (Buy List) first' :
-    'Complete Step 3 (Export) first';
+    'Complete Step 2 (Buy List) first';
+
 }
 
 window.addEventListener('load',()=>{
@@ -1898,6 +1915,9 @@ window.addEventListener('load',()=>{
   updateAddDayButton();
   // Render tabs immediately with current year (no data yet)
   renderSavedChips([]);
+  // Show loading state in panel while Firebase fetches
+  const panel = document.getElementById('savedListPanel');
+  if (panel) panel.innerHTML = '<div style="padding:10px;font-size:11px;font-family:DM Mono,monospace;color:var(--muted);text-align:center">⏳ Loading shared lists...</div>';
   // Firebase will call loadSharedLists() after ~800ms which rerenders with real data
 });
 </script>
